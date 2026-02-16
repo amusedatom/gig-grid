@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Rave-ready Drum & Bass Bingo - Track anthems at festivals offline!">
+    
+    <!-- OpenGraph Meta Tags -->
+    <meta property="og:title" content="DnB Bingo - Rave Edition">
+    <meta property="og:description" content="Track classic and modern Drum & Bass anthems at festivals. Works 100% offline!">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="./icon-512.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DnB Bingo - Rave Edition">
+    <meta name="twitter:description" content="Track classic and modern Drum & Bass anthems at festivals. Works 100% offline!">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DnB Bingo">
+    
+    <title>DnB Bingo - Rave Edition</title>
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">
+                <span class="neon-text">DnB</span> Bingo
+            </h1>
+            <div class="counter">
+                <span id="counter">0</span>/25
+            </div>
+        </header>
+
+        <main class="bingo-grid" id="bingoGrid">
+            <!-- Grid will be populated by JavaScript -->
+        </main>
+
+        <footer class="footer">
+            <button id="resetBtn" class="btn btn-reset">Reset Board</button>
+            <button id="shareBtn" class="btn btn-share">Share Progress 🔊</button>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="./app.js"></script>
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
