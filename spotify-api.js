@@ -143,7 +143,8 @@ async function getAllUserPlaylists() {
  * @returns {Promise<Object>} Playlist tracks response
  */
 async function getPlaylistTracks(playlistId, limit = 100, offset = 0) {
-    return spotifyRequest(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}&fields=items(track(id,name,artists,popularity)),next`);
+    // Removed fields parameter - may cause 403 in 2026 API
+    return spotifyRequest(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`);
 }
 
 /**
