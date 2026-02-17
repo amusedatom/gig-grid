@@ -25,6 +25,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
+      - name: Inject Spotify Client ID
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+        run: |
+          if [ -n "$SPOTIFY_CLIENT_ID" ]; then
+            echo "Injecting Spotify Client ID..."
+            sed -i "s/YOUR_SPOTIFY_CLIENT_ID/$SPOTIFY_CLIENT_ID/g" spotify-auth.js
+          else
+            echo "Warning: SPOTIFY_CLIENT_ID secret not set. Spotify features will not work."
+          fi
+      
       - name: Setup Pages
         uses: actions/configure-pages@v4
       

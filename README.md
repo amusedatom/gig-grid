@@ -53,13 +53,26 @@ To use Spotify features, you need a Client ID:
    - `http://localhost:8000` (for local development)
    - `https://YOUR_USERNAME.github.io/YOUR_REPO/` (for production)
 
-### 2. Configure Client ID
+### 2. Configure Client ID as GitHub Secret
+
+**For GitHub Pages Deployment**:
+
+1. Go to your repository **Settings**
+2. Navigate to **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `SPOTIFY_CLIENT_ID`
+5. Value: Paste your Spotify Client ID
+6. Click **Add secret**
+
+The GitHub Actions workflow will automatically inject this during deployment.
+
+**For Local Development**:
 
 Edit `spotify-auth.js` and replace the placeholder:
 
 ```javascript
 const SPOTIFY_CONFIG = {
-    clientId: 'YOUR_SPOTIFY_CLIENT_ID', // Replace this
+    clientId: 'YOUR_SPOTIFY_CLIENT_ID', // Replace for local testing
     // ...
 };
 ```
