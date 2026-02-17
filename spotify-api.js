@@ -189,6 +189,15 @@ async function getAllPlaylistTracks(playlistId) {
             firstItem: response.items?.[0]
         });
 
+        if (response.items?.[0]) {
+            console.log('First item structure:', {
+                hasTrack: !!response.items[0].track,
+                trackKeys: response.items[0].track ? Object.keys(response.items[0].track) : 'no track',
+                trackId: response.items[0].track?.id,
+                fullItem: response.items[0]
+            });
+        }
+
         // Filter out null tracks (deleted/unavailable)
         const validTracks = response.items
             .filter(item => item.track && item.track.id)
