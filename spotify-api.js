@@ -35,6 +35,26 @@ async function spotifyRequest(endpoint, options = {}) {
         throw new Error('Spotify token expired. Please re-authenticate.');
     }
 
+    if (response.status === 403) {
+        // Forbidden - likely Premium or Developer Mode restriction
+        let errorDetails = '';
+        try {
+            const errorData = await response.json();
+            errorDetails = errorData.error?.message || '';
+        } catch (e) {
+            // Ignore JSON parse errors
+        }
+
+        throw new Error(
+            `Spotify API access denied (403). ` +
+            `This may be due to: ` +
+            `(1) Spotify Premium required for Developer Mode, ` +
+            `(2) App not in Extended Quota Mode, or ` +
+            `(3) User not whitelisted in app settings. ` +
+            (errorDetails ? `Details: ${errorDetails}` : '')
+        );
+    }
+
     if (response.status === 429) {
         // Rate limited
         const retryAfter = response.headers.get('Retry-After') || 1;
@@ -42,7 +62,16 @@ async function spotifyRequest(endpoint, options = {}) {
     }
 
     if (!response.ok) {
-        throw new Error(`Spotify API error: ${response.status} ${response.statusText}`);
+        let errorMessage = `Spotify API error: ${response.status} ${response.statusText}`;
+        try {
+            const errorData = await response.json();
+            if (errorData.error?.message) {
+                errorMessage += ` - ${errorData.error.message}`;
+            }
+        } catch (e) {
+            // Ignore JSON parse errors
+        }
+        throw new Error(errorMessage);
     }
 
     return response.json();
