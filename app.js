@@ -235,11 +235,37 @@ class MusicBingoApp {
         document.getElementById('playlistLoading').style.display = 'block';
 
         try {
+            console.log('Fetching playlists...');
             const playlists = await getAllUserPlaylists();
+            console.log(`Loaded ${playlists.length} playlists`);
+
+            if (!playlists || playlists.length === 0) {
+                throw new Error('No playlists found');
+            }
+
             this.renderPlaylists(playlists);
         } catch (error) {
             console.error('Failed to load playlists:', error);
-            this.showToast('Failed to load playlists. Please try again.');
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+
+            // Show more specific error message
+            let errorMsg = 'Failed to load playlists. ';
+            if (error.message.includes('401') || error.message.includes('expired')) {
+                errorMsg += 'Please re-authenticate.';
+                clearAccessToken(); // Clear the expired token
+            } else if (error.message.includes('403')) {
+                errorMsg += 'Permission denied. Check your Spotify app settings.';
+            } else if (error.message.includes('429')) {
+                errorMsg += 'Rate limited. Please wait a moment.';
+            } else {
+                errorMsg += error.message || 'Please try again.';
+            }
+
+            this.showToast(errorMsg);
             this.showSpotifyAuth();
         } finally {
             document.getElementById('playlistLoading').style.display = 'none';
