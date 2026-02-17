@@ -96,15 +96,32 @@ async function getUserPlaylists(limit = 50, offset = 0) {
 }
 
 /**
+ * Get current user's profile
+ * @returns {Promise<Object>} User profile
+ */
+async function getCurrentUser() {
+    return spotifyRequest('/me');
+}
+
+/**
  * Get all user's playlists (handles pagination)
+ * @param {boolean} onlyOwned - If true, only return playlists owned by the user
  * @returns {Promise<Array>} Array of all playlists
  */
-async function getAllUserPlaylists() {
+async function getAllUserPlaylists(onlyOwned = true) {
     const playlists = [];
     let offset = 0;
     const limit = 50;
+    let currentUserId = null;
 
     try {
+        // Get current user ID if filtering by ownership
+        if (onlyOwned) {
+            const user = await getCurrentUser();
+            currentUserId = user.id;
+            console.log('Current user ID:', currentUserId);
+        }
+
         while (true) {
             const response = await getUserPlaylists(limit, offset);
 
@@ -119,7 +136,12 @@ async function getAllUserPlaylists() {
                 throw new Error('Invalid response format from Spotify API');
             }
 
-            playlists.push(...response.items);
+            // Filter playlists if onlyOwned is true
+            const items = onlyOwned
+                ? response.items.filter(playlist => playlist.owner.id === currentUserId)
+                : response.items;
+
+            playlists.push(...items);
 
             if (!response.next) {
                 break;
@@ -128,6 +150,7 @@ async function getAllUserPlaylists() {
             offset += limit;
         }
 
+        console.log(`Loaded ${playlists.length} ${onlyOwned ? 'owned' : 'total'} playlists`);
         return playlists;
     } catch (error) {
         console.error('Error fetching playlists:', error);
