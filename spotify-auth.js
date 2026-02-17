@@ -54,22 +54,51 @@ function authenticateSpotify() {
                     clearInterval(checkPopup);
                     const token = getAccessToken();
                     if (token) {
+                        console.log('Authentication successful - token retrieved');
                         resolve(token);
                     } else {
+                        console.error('Popup closed without token');
                         reject(new Error('Authentication cancelled'));
                     }
+                    return;
                 }
 
                 // Check if popup has redirected back
-                if (popup.location.href.includes(SPOTIFY_CONFIG.redirectUri)) {
-                    const hash = popup.location.hash;
-                    parseAuthCallback(hash);
-                    popup.close();
-                    clearInterval(checkPopup);
-                    resolve(getAccessToken());
+                try {
+                    const popupUrl = popup.location.href;
+
+                    // Check if we're back at our redirect URI
+                    if (popupUrl.includes(SPOTIFY_CONFIG.redirectUri)) {
+                        console.log('Redirect detected, parsing token...');
+                        const hash = popup.location.hash;
+
+                        if (hash && hash.includes('access_token')) {
+                            parseAuthCallback(hash);
+                            const token = getAccessToken();
+
+                            if (token) {
+                                console.log('Token parsed successfully');
+                                popup.close();
+                                clearInterval(checkPopup);
+                                resolve(token);
+                            } else {
+                                console.error('Failed to parse token from hash');
+                                popup.close();
+                                clearInterval(checkPopup);
+                                reject(new Error('Failed to parse authentication token'));
+                            }
+                        } else {
+                            console.error('No access_token in redirect hash');
+                            popup.close();
+                            clearInterval(checkPopup);
+                            reject(new Error('No access token received'));
+                        }
+                    }
+                } catch (e) {
+                    // Cross-origin error - popup hasn't redirected yet, this is expected
                 }
             } catch (e) {
-                // Cross-origin error - popup hasn't redirected yet
+                console.error('Error in auth check:', e);
             }
         }, 500);
 
