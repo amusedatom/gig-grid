@@ -166,8 +166,8 @@ async function getAllUserPlaylists(onlyOwned = true) {
  * @returns {Promise<Object>} Playlist tracks response
  */
 async function getPlaylistTracks(playlistId, limit = 100, offset = 0) {
-    // Removed fields parameter - may cause 403 in 2026 API
-    return spotifyRequest(`/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`);
+    // Updated to /items endpoint (2026 API change from /tracks)
+    return spotifyRequest(`/playlists/${playlistId}/items?limit=${limit}&offset=${offset}`);
 }
 
 /**
