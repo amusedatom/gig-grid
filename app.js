@@ -296,7 +296,9 @@ class MusicBingoApp {
 
             const tracks = document.createElement('div');
             tracks.className = 'playlist-tracks';
-            tracks.textContent = `${playlist.tracks.total} tracks`;
+            // API response has items.total instead of tracks.total
+            const trackCount = playlist.items?.total || playlist.tracks?.total || 0;
+            tracks.textContent = `${trackCount} tracks`;
 
             info.appendChild(name);
             info.appendChild(tracks);
