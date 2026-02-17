@@ -263,6 +263,11 @@ async function createGameFromPlaylist(playlistId, trackCount = 25) {
         // Get all tracks
         const allTracks = await getAllPlaylistTracks(playlistId);
 
+        console.log('createGameFromPlaylist - allTracks:', {
+            length: allTracks.length,
+            firstTrack: allTracks[0]
+        });
+
         if (allTracks.length < trackCount) {
             throw new Error(`Playlist only has ${allTracks.length} tracks. Need at least ${trackCount}.`);
         }
