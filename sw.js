@@ -2,12 +2,18 @@
 // SERVICE WORKER - CACHE-FIRST STRATEGY
 // ========================================
 
-const CACHE_NAME = 'dnb-bingo-v1';
+const CACHE_NAME = 'music-bingo-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './style.css',
     './app.js',
+    './seed-random.js',
+    './game-state.js',
+    './spotify-auth.js',
+    './spotify-api.js',
+    './qr-generator.js',
+    './libs/qrcode.min.js',
     './manifest.json',
     './icon-192.png',
     './icon-512.png'

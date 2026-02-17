@@ -1,8 +1,9 @@
 // ========================================
-// RAVE-READY BINGO - MAIN APPLICATION
+// MUSIC BINGO - MULTIPLAYER EDITION
+// Main Application Logic
 // ========================================
 
-// 25 Classic and Modern Drum & Bass Anthems
+// 25 Classic and Modern Drum & Bass Anthems (Classic Mode)
 const DNB_ANTHEMS = [
     "Pendulum - Tarantula",
     "Chase & Status - End Credits",
@@ -31,60 +32,144 @@ const DNB_ANTHEMS = [
     "Metrik - Freefall"
 ];
 
-// State Management
-const STORAGE_KEY = 'dnb-bingo-state';
-
-class BingoApp {
+class MusicBingoApp {
     constructor() {
+        // DOM Elements
         this.grid = document.getElementById('bingoGrid');
         this.counter = document.getElementById('counter');
+        this.total = document.getElementById('total');
         this.resetBtn = document.getElementById('resetBtn');
         this.shareBtn = document.getElementById('shareBtn');
+        this.gameTitle = document.getElementById('gameTitle');
+        this.gameInfo = document.getElementById('gameInfo');
+        this.gameInfoText = document.getElementById('gameInfoText');
+        this.modeSelector = document.getElementById('modeSelector');
 
-        this.state = this.loadState();
+        // Modals
+        this.playlistModal = document.getElementById('playlistModal');
+        this.qrModal = document.getElementById('qrModal');
+
+        // Current game state
+        this.currentGame = null;
+        this.currentTracks = [];
+        this.currentMode = 'classic';
+        this.checkState = [];
+
+        // Migrate legacy state
+        migrateLegacyState();
+
         this.init();
     }
 
-    // Initialize the app
-    init() {
-        this.renderGrid();
-        this.updateCounter();
+    async init() {
+        // Check for game in URL
+        const urlGame = getCurrentGameFromUrl();
+
+        if (urlGame) {
+            await this.joinGame(urlGame);
+        } else {
+            // Start in classic mode
+            this.startClassicMode();
+        }
+
         this.attachEventListeners();
     }
 
-    // Load state from localStorage
-    loadState() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
+    // ========================================
+    // GAME MODES
+    // ========================================
+
+    startClassicMode() {
+        this.currentMode = 'classic';
+        this.currentGame = {
+            gameId: 'classic',
+            mode: 'classic',
+            seed: 42, // Fixed seed for classic mode
+            timestamp: Date.now()
+        };
+
+        // Use DnB anthems
+        this.currentTracks = DNB_ANTHEMS.map((anthem, index) => ({
+            id: `dnb-${index}`,
+            name: anthem,
+            artist: ''
+        }));
+
+        this.gameTitle.textContent = 'DnB';
+        this.gameInfo.style.display = 'none';
+        this.modeSelector.style.display = 'flex';
+
+        this.loadGame();
+    }
+
+    async startHostMode() {
+        // Show playlist modal
+        this.showPlaylistModal();
+    }
+
+    async joinGame(gameState) {
+        this.currentGame = gameState;
+        this.currentMode = gameState.mode;
+
+        if (gameState.mode === 'spotify') {
             try {
-                return JSON.parse(saved);
-            } catch (e) {
-                console.error('Failed to parse saved state:', e);
+                // Fetch playlist tracks
+                const gameData = await createGameFromPlaylist(gameState.playlistId, 25);
+                this.currentTracks = gameData.tracks;
+
+                this.gameTitle.textContent = 'Spotify';
+                this.gameInfo.style.display = 'block';
+                this.gameInfoText.textContent = `Playing: ${gameState.playlistName}`;
+                this.modeSelector.style.display = 'none';
+
+            } catch (error) {
+                console.error('Failed to load Spotify game:', error);
+                this.showToast('Failed to load game. Starting classic mode.');
+                this.startClassicMode();
+                return;
             }
+        } else {
+            this.startClassicMode();
+            return;
         }
-        // Initialize with all unchecked
-        return DNB_ANTHEMS.map(() => false);
+
+        this.loadGame();
     }
 
-    // Save state to localStorage
-    saveState() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-        } catch (e) {
-            console.error('Failed to save state:', e);
-        }
+    loadGame() {
+        // Shuffle tracks using seeded random
+        const shuffled = seededShuffle(this.currentTracks, this.currentGame.seed);
+        this.currentTracks = shuffled.slice(0, 25);
+
+        // Load saved progress
+        this.checkState = loadGameProgress(this.currentGame.gameId, this.currentTracks.length);
+
+        // Update UI
+        this.total.textContent = this.currentTracks.length;
+        this.renderGrid();
+        this.updateCounter();
     }
 
-    // Render the bingo grid
+    // ========================================
+    // GRID RENDERING
+    // ========================================
+
     renderGrid() {
         this.grid.innerHTML = '';
-        DNB_ANTHEMS.forEach((anthem, index) => {
+
+        this.currentTracks.forEach((track, index) => {
             const cell = document.createElement('div');
             cell.className = 'bingo-cell';
-            cell.textContent = anthem;
+
+            // Display track name (and artist if available)
+            const displayText = track.artist
+                ? `${track.name}\n${track.artist}`
+                : track.name;
+
+            cell.textContent = displayText;
             cell.dataset.index = index;
 
-            if (this.state[index]) {
+            if (this.checkState[index]) {
                 cell.classList.add('checked');
             }
 
@@ -92,21 +177,18 @@ class BingoApp {
         });
     }
 
-    // Update the counter display
     updateCounter() {
-        const checkedCount = this.state.filter(Boolean).length;
+        const checkedCount = this.checkState.filter(Boolean).length;
         this.counter.textContent = checkedCount;
     }
 
-    // Toggle a cell's checked state
     toggleCell(index) {
-        this.state[index] = !this.state[index];
-        this.saveState();
+        this.checkState[index] = !this.checkState[index];
+        saveGameProgress(this.currentGame.gameId, this.checkState);
         this.updateCounter();
 
-        // Update the cell visually
         const cell = this.grid.querySelector(`[data-index="${index}"]`);
-        if (this.state[index]) {
+        if (this.checkState[index]) {
             cell.classList.add('checked');
             this.triggerHaptic();
         } else {
@@ -114,28 +196,171 @@ class BingoApp {
         }
     }
 
-    // Reset the board
     resetBoard() {
         if (confirm('Reset the entire board? This cannot be undone.')) {
-            this.state = DNB_ANTHEMS.map(() => false);
-            this.saveState();
+            this.checkState = Array(this.currentTracks.length).fill(false);
+            saveGameProgress(this.currentGame.gameId, this.checkState);
             this.renderGrid();
             this.updateCounter();
             this.triggerHaptic('medium');
         }
     }
 
-    // Share progress
+    // ========================================
+    // SPOTIFY HOST MODE
+    // ========================================
+
+    showPlaylistModal() {
+        this.playlistModal.classList.add('active');
+
+        if (isAuthenticated()) {
+            this.showPlaylistList();
+        } else {
+            this.showSpotifyAuth();
+        }
+    }
+
+    hidePlaylistModal() {
+        this.playlistModal.classList.remove('active');
+    }
+
+    showSpotifyAuth() {
+        document.getElementById('spotifyAuthSection').style.display = 'block';
+        document.getElementById('playlistListSection').style.display = 'none';
+    }
+
+    async showPlaylistList() {
+        document.getElementById('spotifyAuthSection').style.display = 'none';
+        document.getElementById('playlistListSection').style.display = 'block';
+        document.getElementById('playlistLoading').style.display = 'block';
+
+        try {
+            const playlists = await getAllUserPlaylists();
+            this.renderPlaylists(playlists);
+        } catch (error) {
+            console.error('Failed to load playlists:', error);
+            this.showToast('Failed to load playlists. Please try again.');
+            this.showSpotifyAuth();
+        } finally {
+            document.getElementById('playlistLoading').style.display = 'none';
+        }
+    }
+
+    renderPlaylists(playlists) {
+        const container = document.getElementById('playlistList');
+        container.innerHTML = '';
+
+        playlists.forEach(playlist => {
+            const item = document.createElement('div');
+            item.className = 'playlist-item';
+            item.dataset.playlistId = playlist.id;
+            item.dataset.playlistName = playlist.name;
+
+            const image = document.createElement('img');
+            image.className = 'playlist-image';
+            image.src = playlist.images[0]?.url || '';
+            image.alt = playlist.name;
+
+            const info = document.createElement('div');
+            info.className = 'playlist-info';
+
+            const name = document.createElement('div');
+            name.className = 'playlist-name';
+            name.textContent = playlist.name;
+
+            const tracks = document.createElement('div');
+            tracks.className = 'playlist-tracks';
+            tracks.textContent = `${playlist.tracks.total} tracks`;
+
+            info.appendChild(name);
+            info.appendChild(tracks);
+            item.appendChild(image);
+            item.appendChild(info);
+            container.appendChild(item);
+
+            item.addEventListener('click', () => this.selectPlaylist(playlist));
+        });
+
+        // Setup search
+        const searchInput = document.getElementById('playlistSearch');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const items = container.querySelectorAll('.playlist-item');
+
+            items.forEach(item => {
+                const name = item.querySelector('.playlist-name').textContent.toLowerCase();
+                item.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        });
+    }
+
+    async selectPlaylist(playlist) {
+        this.hidePlaylistModal();
+        this.showToast('Creating game from playlist...');
+
+        try {
+            // Create game from playlist
+            const gameData = await createGameFromPlaylist(playlist.id, 25);
+
+            // Generate game state
+            const gameState = {
+                gameId: generateGameId(),
+                mode: 'spotify',
+                playlistId: playlist.id,
+                playlistName: playlist.name,
+                seed: generateGameSeed(),
+                timestamp: Date.now()
+            };
+
+            // Create shareable URL
+            const shareUrl = createShareableUrl(gameState);
+
+            // Update URL
+            updateUrlHash(gameState);
+
+            // Load the game
+            this.currentGame = gameState;
+            this.currentTracks = gameData.tracks;
+            this.currentMode = 'spotify';
+
+            this.gameTitle.textContent = 'Spotify';
+            this.gameInfo.style.display = 'block';
+            this.gameInfoText.textContent = `Playing: ${playlist.name}`;
+            this.modeSelector.style.display = 'none';
+
+            this.loadGame();
+
+            // Show QR code
+            showQRCodeModal(shareUrl, playlist.name);
+
+        } catch (error) {
+            console.error('Failed to create game:', error);
+            this.showToast('Failed to create game. Please try again.');
+        }
+    }
+
+    // ========================================
+    // SHARING
+    // ========================================
+
     async shareProgress() {
-        const checkedCount = this.state.filter(Boolean).length;
-        const shareText = `🔊 DnB Bingo: ${checkedCount}/25 anthems found! Ready for the rave! 🎧`;
+        const checkedCount = this.checkState.filter(Boolean).length;
+        const total = this.currentTracks.length;
+
+        let shareText;
+        if (this.currentMode === 'spotify') {
+            shareText = `🎵 Music Bingo: ${checkedCount}/${total} tracks found! 🎧`;
+        } else {
+            shareText = `🔊 DnB Bingo: ${checkedCount}/${total} anthems found! 🎧`;
+        }
+
         const shareUrl = window.location.href;
 
-        // Try Web Share API first
+        // Try Web Share API
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'DnB Bingo Progress',
+                    title: 'Music Bingo Progress',
                     text: shareText,
                     url: shareUrl
                 });
@@ -157,7 +382,10 @@ class BingoApp {
         }
     }
 
-    // Trigger haptic feedback (if supported)
+    // ========================================
+    // UI HELPERS
+    // ========================================
+
     triggerHaptic(style = 'light') {
         if (navigator.vibrate) {
             const patterns = {
@@ -169,9 +397,7 @@ class BingoApp {
         }
     }
 
-    // Show a toast notification
     showToast(message) {
-        // Create toast element
         const toast = document.createElement('div');
         toast.textContent = message;
         toast.style.cssText = `
@@ -196,9 +422,12 @@ class BingoApp {
         }, 2000);
     }
 
-    // Attach event listeners
+    // ========================================
+    // EVENT LISTENERS
+    // ========================================
+
     attachEventListeners() {
-        // Cell clicks
+        // Grid clicks
         this.grid.addEventListener('click', (e) => {
             const cell = e.target.closest('.bingo-cell');
             if (cell) {
@@ -212,10 +441,73 @@ class BingoApp {
 
         // Share button
         this.shareBtn.addEventListener('click', () => this.shareProgress());
+
+        // Mode selector
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+
+                // Update active state
+                modeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (mode === 'classic') {
+                    window.location.hash = '';
+                    this.startClassicMode();
+                } else if (mode === 'host') {
+                    this.startHostMode();
+                }
+            });
+        });
+
+        // Spotify login
+        document.getElementById('spotifyLoginBtn').addEventListener('click', async () => {
+            try {
+                await authenticateSpotify();
+                this.showPlaylistList();
+            } catch (error) {
+                console.error('Spotify auth failed:', error);
+                this.showToast('Spotify login failed. Please try again.');
+            }
+        });
+
+        // Modal close buttons
+        document.getElementById('closePlaylistModal').addEventListener('click', () => {
+            this.hidePlaylistModal();
+        });
+
+        document.getElementById('closeQrModal').addEventListener('click', () => {
+            hideQRCodeModal();
+        });
+
+        // Copy URL button
+        document.getElementById('copyUrlBtn').addEventListener('click', async () => {
+            const url = document.getElementById('shareUrl').value;
+            const success = await copyUrlToClipboard(url);
+            if (success) {
+                this.showToast('Link copied! 📋');
+            } else {
+                this.showToast('Failed to copy link');
+            }
+        });
+
+        // Close modals on background click
+        this.playlistModal.addEventListener('click', (e) => {
+            if (e.target === this.playlistModal) {
+                this.hidePlaylistModal();
+            }
+        });
+
+        this.qrModal.addEventListener('click', (e) => {
+            if (e.target === this.qrModal) {
+                hideQRCodeModal();
+            }
+        });
     }
 }
 
-// Add toast animations to the document
+// Add toast animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideUp {
@@ -241,9 +533,9 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Initialize the app when DOM is ready
+// Initialize app
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new BingoApp());
+    document.addEventListener('DOMContentLoaded', () => new MusicBingoApp());
 } else {
-    new BingoApp();
+    new MusicBingoApp();
 }

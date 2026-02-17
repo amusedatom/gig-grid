@@ -8,17 +8,17 @@
     --neon-pink: #ff00ff;
     --neon-cyan: #00ffff;
     --neon-yellow: #ffff00;
-    
+
     /* Dark Base Colors */
     --bg-black: #000000;
     --bg-dark: #0a0a0a;
     --bg-card: #1a1a1a;
     --border-color: #333333;
-    
+
     /* Text Colors */
     --text-primary: #ffffff;
     --text-secondary: #cccccc;
-    
+
     /* Spacing */
     --spacing-xs: 0.5rem;
     --spacing-sm: 1rem;
@@ -36,7 +36,8 @@
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     height: 100%;
     overflow: hidden;
 }
@@ -58,7 +59,8 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile */
+    height: 100dvh;
+    /* Dynamic viewport height for mobile */
     padding: var(--spacing-sm);
     gap: var(--spacing-sm);
 }
@@ -83,7 +85,7 @@ body {
 
 .neon-text {
     color: var(--neon-green);
-    text-shadow: 
+    text-shadow:
         0 0 5px var(--neon-green),
         0 0 10px var(--neon-green),
         0 0 20px var(--neon-green);
@@ -91,14 +93,17 @@ body {
 }
 
 @keyframes neon-pulse {
-    0%, 100% {
-        text-shadow: 
+
+    0%,
+    100% {
+        text-shadow:
             0 0 5px var(--neon-green),
             0 0 10px var(--neon-green),
             0 0 20px var(--neon-green);
     }
+
     50% {
-        text-shadow: 
+        text-shadow:
             0 0 10px var(--neon-green),
             0 0 20px var(--neon-green),
             0 0 40px var(--neon-green);
@@ -113,6 +118,60 @@ body {
 }
 
 /* ========================================
+   MODE SELECTOR
+   ======================================== */
+
+.mode-selector {
+    display: flex;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+    color: var(--neon-green);
+    border-color: var(--neon-green);
+}
+
+.mode-btn.active {
+    background: var(--neon-green);
+    color: var(--bg-black);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+/* ========================================
+   GAME INFO BAR
+   ======================================== */
+
+.game-info {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-card);
+    border: 2px solid var(--neon-cyan);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+/* ========================================
    BINGO GRID
    ======================================== */
 
@@ -122,7 +181,8 @@ body {
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(5, 1fr);
     gap: var(--spacing-xs);
-    min-height: 0; /* Important for flex children */
+    min-height: 0;
+    /* Important for flex children */
 }
 
 .bingo-cell {
@@ -164,10 +224,12 @@ body {
     0% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.15);
         box-shadow: 0 0 30px var(--neon-green);
     }
+
     100% {
         transform: scale(1);
     }
@@ -236,6 +298,250 @@ body {
     transform: scale(0.95);
 }
 
+.btn-spotify {
+    background: #1DB954;
+    color: white;
+    border: 2px solid #1DB954;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-spotify:hover {
+    background: #1ed760;
+    box-shadow: 0 0 20px rgba(29, 185, 84, 0.5);
+}
+
+.spotify-icon {
+    font-size: 1.5rem;
+}
+
+.btn-copy {
+    flex: 0 0 auto;
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* ========================================
+   MODALS
+   ======================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 2px solid var(--neon-green);
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 90vh;
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 40px rgba(0, 255, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modal-header h2 {
+    color: var(--neon-green);
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--neon-pink);
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    color: var(--neon-green);
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: var(--spacing-md);
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* ========================================
+   PLAYLIST SELECTION
+   ======================================== */
+
+#spotifyAuthSection {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+#spotifyAuthSection p {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+}
+
+.search-box {
+    margin-bottom: var(--spacing-sm);
+}
+
+.search-box input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    background: var(--bg-dark);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.playlist-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.playlist-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--bg-dark);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.playlist-item:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+    transform: translateX(5px);
+}
+
+.playlist-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--bg-card);
+}
+
+.playlist-info {
+    flex: 1;
+}
+
+.playlist-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.playlist-tracks {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   QR CODE MODAL
+   ======================================== */
+
+.qr-modal-body {
+    text-align: center;
+}
+
+.qr-modal-body h3 {
+    color: var(--neon-green);
+    margin-bottom: var(--spacing-sm);
+}
+
+.qr-modal-body p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.qr-container {
+    display: flex;
+    justify-content: center;
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    background: white;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.share-url-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.share-url-container input {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: var(--bg-dark);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   LOADING STATE
+   ======================================== */
+
+.loading {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto var(--spacing-sm);
+    border: 4px solid var(--border-color);
+    border-top-color: var(--neon-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* ========================================
    RESPONSIVE ADJUSTMENTS
    ======================================== */
@@ -245,18 +551,27 @@ body {
         padding: 0.5rem;
         gap: 0.5rem;
     }
-    
+
     .header {
         padding: 0.75rem;
     }
-    
+
     .bingo-grid {
         gap: 0.25rem;
     }
-    
+
     .bingo-cell {
         padding: 0.25rem;
         border-radius: 6px;
+    }
+
+    .modal-content {
+        width: 95%;
+    }
+
+    .mode-btn {
+        font-size: 0.75rem;
+        padding: 0.5rem;
     }
 }
 

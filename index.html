@@ -1,50 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
-    <meta name="description" content="Rave-ready Drum & Bass Bingo - Track anthems at festivals offline!">
-    
+    <meta name="description" content="Multiplayer Bingo with Spotify playlists - Track anthems at festivals offline!">
+
     <!-- OpenGraph Meta Tags -->
-    <meta property="og:title" content="DnB Bingo - Rave Edition">
-    <meta property="og:description" content="Track classic and modern Drum & Bass anthems at festivals. Works 100% offline!">
+    <meta property="og:title" content="Music Bingo - Multiplayer Edition">
+    <meta property="og:description" content="Create custom bingo games from Spotify playlists. Works 100% offline!">
     <meta property="og:type" content="website">
     <meta property="og:image" content="./icon-512.png">
-    
+
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="DnB Bingo - Rave Edition">
-    <meta name="twitter:description" content="Track classic and modern Drum & Bass anthems at festivals. Works 100% offline!">
-    
+    <meta name="twitter:title" content="Music Bingo - Multiplayer Edition">
+    <meta name="twitter:description" content="Create custom bingo games from Spotify playlists. Works 100% offline!">
+
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="DnB Bingo">
-    
-    <title>DnB Bingo - Rave Edition</title>
-    
+    <meta name="apple-mobile-web-app-title" content="Music Bingo">
+
+    <title>Music Bingo - Multiplayer Edition</title>
+
     <!-- Manifest -->
     <link rel="manifest" href="./manifest.json">
-    
+
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
     <div class="container">
         <header class="header">
             <h1 class="title">
-                <span class="neon-text">DnB</span> Bingo
+                <span class="neon-text" id="gameTitle">Music</span> Bingo
             </h1>
             <div class="counter">
-                <span id="counter">0</span>/25
+                <span id="counter">0</span>/<span id="total">25</span>
             </div>
         </header>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector" id="modeSelector">
+            <button class="mode-btn active" data-mode="classic">Classic DnB</button>
+            <button class="mode-btn" data-mode="host">Host Game</button>
+        </div>
+
+        <!-- Game Info Bar -->
+        <div class="game-info" id="gameInfo" style="display: none;">
+            <span id="gameInfoText"></span>
+        </div>
 
         <main class="bingo-grid" id="bingoGrid">
             <!-- Grid will be populated by JavaScript -->
@@ -56,7 +69,62 @@
         </footer>
     </div>
 
+    <!-- Playlist Selection Modal -->
+    <div class="modal" id="playlistModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Spotify Playlist</h2>
+                <button class="modal-close" id="closePlaylistModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="spotifyAuthSection">
+                    <p>Connect to Spotify to select a playlist</p>
+                    <button class="btn btn-spotify" id="spotifyLoginBtn">
+                        <span class="spotify-icon">♫</span> Connect Spotify
+                    </button>
+                </div>
+                <div id="playlistListSection" style="display: none;">
+                    <div class="search-box">
+                        <input type="text" id="playlistSearch" placeholder="Search playlists...">
+                    </div>
+                    <div class="playlist-list" id="playlistList">
+                        <!-- Playlists will be populated here -->
+                    </div>
+                    <div class="loading" id="playlistLoading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading playlists...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal" id="qrModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share Game</h2>
+                <button class="modal-close" id="closeQrModal">&times;</button>
+            </div>
+            <div class="modal-body qr-modal-body">
+                <h3 id="qrGameName">Game Ready!</h3>
+                <p>Scan this QR code or share the link:</p>
+                <div id="qrCodeContainer" class="qr-container"></div>
+                <div class="share-url-container">
+                    <input type="text" id="shareUrl" readonly>
+                    <button class="btn btn-copy" id="copyUrlBtn">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="./libs/qrcode.min.js"></script>
+    <script src="./seed-random.js"></script>
+    <script src="./game-state.js"></script>
+    <script src="./spotify-auth.js"></script>
+    <script src="./spotify-api.js"></script>
+    <script src="./qr-generator.js"></script>
     <script src="./app.js"></script>
     <script>
         // Register Service Worker
@@ -69,4 +137,5 @@
         }
     </script>
 </body>
+
 </html>
