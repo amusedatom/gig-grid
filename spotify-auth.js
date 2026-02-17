@@ -1,6 +1,6 @@
 // ========================================
-// SPOTIFY AUTHENTICATION
-// Implicit Grant Flow for client-side OAuth
+// SPOTIFY AUTHENTICATION - PKCE FLOW
+// Authorization Code with PKCE for client-side OAuth
 // ========================================
 
 const SPOTIFY_CONFIG = {
@@ -14,135 +14,247 @@ const SPOTIFY_CONFIG = {
 };
 
 /**
- * Generate Spotify authorization URL
+ * Generate random string for code verifier
+ * @param {number} length - Length of string
+ * @returns {string} Random string
+ */
+function generateRandomString(length) {
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const values = crypto.getRandomValues(new Uint8Array(length));
+    return values.reduce((acc, x) => acc + possible[x % possible.length], '');
+}
+
+/**
+ * Generate SHA256 hash
+ * @param {string} plain - Plain text to hash
+ * @returns {Promise<ArrayBuffer>} Hash
+ */
+async function sha256(plain) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plain);
+    return crypto.subtle.digest('SHA-256', data);
+}
+
+/**
+ * Base64 encode
+ * @param {ArrayBuffer} input - Input to encode
+ * @returns {string} Base64 encoded string
+ */
+function base64encode(input) {
+    return btoa(String.fromCharCode(...new Uint8Array(input)))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+}
+
+/**
+ * Generate code challenge from verifier
+ * @param {string} verifier - Code verifier
+ * @returns {Promise<string>} Code challenge
+ */
+async function generateCodeChallenge(verifier) {
+    const hashed = await sha256(verifier);
+    return base64encode(hashed);
+}
+
+/**
+ * Generate Spotify authorization URL with PKCE
+ * @param {string} codeChallenge - Code challenge
  * @returns {string} Authorization URL
  */
-function getSpotifyAuthUrl() {
+function getSpotifyAuthUrl(codeChallenge) {
     const params = new URLSearchParams({
         client_id: SPOTIFY_CONFIG.clientId,
-        response_type: 'token',
+        response_type: 'code',
         redirect_uri: SPOTIFY_CONFIG.redirectUri,
         scope: SPOTIFY_CONFIG.scopes.join(' '),
-        show_dialog: 'false'
+        code_challenge_method: 'S256',
+        code_challenge: codeChallenge
     });
 
     return `https://accounts.spotify.com/authorize?${params.toString()}`;
 }
 
 /**
- * Initiate Spotify authentication
- * Opens popup window for user login
+ * Exchange authorization code for access token
+ * @param {string} code - Authorization code
+ * @param {string} verifier - Code verifier
+ * @returns {Promise<Object>} Token response
  */
-function authenticateSpotify() {
-    const authUrl = getSpotifyAuthUrl();
-    const width = 500;
-    const height = 700;
-    const left = (window.screen.width - width) / 2;
-    const top = (window.screen.height - height) / 2;
-
-    const popup = window.open(
-        authUrl,
-        'Spotify Login',
-        `width=${width},height=${height},left=${left},top=${top}`
-    );
-
-    // Listen for the redirect callback
-    return new Promise((resolve, reject) => {
-        const checkPopup = setInterval(() => {
-            try {
-                if (popup.closed) {
-                    clearInterval(checkPopup);
-                    const token = getAccessToken();
-                    if (token) {
-                        console.log('Authentication successful - token retrieved');
-                        resolve(token);
-                    } else {
-                        console.error('Popup closed without token');
-                        reject(new Error('Authentication cancelled'));
-                    }
-                    return;
-                }
-
-                // Check if popup has redirected back
-                try {
-                    const popupUrl = popup.location.href;
-
-                    // Check if we're back at our redirect URI
-                    if (popupUrl.includes(SPOTIFY_CONFIG.redirectUri)) {
-                        console.log('Redirect detected, parsing token...');
-                        const hash = popup.location.hash;
-
-                        if (hash && hash.includes('access_token')) {
-                            parseAuthCallback(hash);
-                            const token = getAccessToken();
-
-                            if (token) {
-                                console.log('Token parsed successfully');
-                                popup.close();
-                                clearInterval(checkPopup);
-                                resolve(token);
-                            } else {
-                                console.error('Failed to parse token from hash');
-                                popup.close();
-                                clearInterval(checkPopup);
-                                reject(new Error('Failed to parse authentication token'));
-                            }
-                        } else {
-                            console.error('No access_token in redirect hash');
-                            popup.close();
-                            clearInterval(checkPopup);
-                            reject(new Error('No access token received'));
-                        }
-                    }
-                } catch (e) {
-                    // Cross-origin error - popup hasn't redirected yet, this is expected
-                }
-            } catch (e) {
-                console.error('Error in auth check:', e);
-            }
-        }, 500);
-
-        // Timeout after 5 minutes
-        setTimeout(() => {
-            clearInterval(checkPopup);
-            if (!popup.closed) {
-                popup.close();
-            }
-            reject(new Error('Authentication timeout'));
-        }, 300000);
+async function exchangeCodeForToken(code, verifier) {
+    const params = new URLSearchParams({
+        client_id: SPOTIFY_CONFIG.clientId,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: SPOTIFY_CONFIG.redirectUri,
+        code_verifier: verifier
     });
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Token exchange failed: ${error.error_description || error.error}`);
+    }
+
+    return response.json();
 }
 
 /**
- * Parse authentication callback from URL hash
- * @param {string} hash - URL hash from Spotify redirect
+ * Initiate Spotify authentication with PKCE
+ * Opens popup window for user login
  */
-function parseAuthCallback(hash) {
-    if (!hash) {
-        hash = window.location.hash;
+async function authenticateSpotify() {
+    try {
+        // Generate code verifier and challenge
+        const codeVerifier = generateRandomString(64);
+        const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+        // Store verifier for later
+        sessionStorage.setItem('spotify_code_verifier', codeVerifier);
+
+        // Generate auth URL
+        const authUrl = getSpotifyAuthUrl(codeChallenge);
+
+        // Open popup
+        const width = 500;
+        const height = 700;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        const popup = window.open(
+            authUrl,
+            'Spotify Login',
+            `width=${width},height=${height},left=${left},top=${top}`
+        );
+
+        // Listen for the redirect callback
+        return new Promise((resolve, reject) => {
+            const checkPopup = setInterval(async () => {
+                try {
+                    if (popup.closed) {
+                        clearInterval(checkPopup);
+                        const token = getAccessToken();
+                        if (token) {
+                            console.log('Authentication successful - token retrieved');
+                            resolve(token);
+                        } else {
+                            console.error('Popup closed without token');
+                            reject(new Error('Authentication cancelled'));
+                        }
+                        return;
+                    }
+
+                    // Check if popup has redirected back
+                    try {
+                        const popupUrl = popup.location.href;
+
+                        // Check if we're back at our redirect URI
+                        if (popupUrl.includes(SPOTIFY_CONFIG.redirectUri) && popupUrl.includes('code=')) {
+                            console.log('Redirect detected, exchanging code for token...');
+
+                            // Extract code from URL
+                            const urlParams = new URLSearchParams(popup.location.search);
+                            const code = urlParams.get('code');
+
+                            if (code) {
+                                // Exchange code for token
+                                const verifier = sessionStorage.getItem('spotify_code_verifier');
+                                const tokenData = await exchangeCodeForToken(code, verifier);
+
+                                // Store token
+                                const expiryTime = Date.now() + (tokenData.expires_in * 1000);
+                                sessionStorage.setItem('spotify_access_token', tokenData.access_token);
+                                sessionStorage.setItem('spotify_token_expiry', expiryTime.toString());
+
+                                if (tokenData.refresh_token) {
+                                    sessionStorage.setItem('spotify_refresh_token', tokenData.refresh_token);
+                                }
+
+                                // Clean up
+                                sessionStorage.removeItem('spotify_code_verifier');
+
+                                console.log('Token exchange successful');
+                                popup.close();
+                                clearInterval(checkPopup);
+                                resolve(tokenData.access_token);
+                            } else {
+                                console.error('No code in redirect URL');
+                                popup.close();
+                                clearInterval(checkPopup);
+                                reject(new Error('No authorization code received'));
+                            }
+                        }
+                    } catch (e) {
+                        // Cross-origin error - popup hasn't redirected yet, this is expected
+                    }
+                } catch (e) {
+                    console.error('Error in auth check:', e);
+                }
+            }, 500);
+
+            // Timeout after 5 minutes
+            setTimeout(() => {
+                clearInterval(checkPopup);
+                if (!popup.closed) {
+                    popup.close();
+                }
+                reject(new Error('Authentication timeout'));
+            }, 300000);
+        });
+    } catch (error) {
+        console.error('Authentication error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Parse authentication callback from URL
+ * @param {string} url - URL with code parameter
+ */
+async function parseAuthCallback(url) {
+    if (!url) {
+        url = window.location.href;
     }
 
-    if (!hash || !hash.includes('access_token')) {
+    const urlParams = new URLSearchParams(new URL(url).search);
+    const code = urlParams.get('code');
+
+    if (!code) {
         return;
     }
 
-    // Remove leading #
-    hash = hash.replace(/^#/, '');
+    try {
+        const verifier = sessionStorage.getItem('spotify_code_verifier');
+        if (!verifier) {
+            console.error('No code verifier found');
+            return;
+        }
 
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    const expiresIn = params.get('expires_in');
+        const tokenData = await exchangeCodeForToken(code, verifier);
 
-    if (accessToken) {
-        const expiryTime = Date.now() + (parseInt(expiresIn) * 1000);
-
-        sessionStorage.setItem('spotify_access_token', accessToken);
+        const expiryTime = Date.now() + (tokenData.expires_in * 1000);
+        sessionStorage.setItem('spotify_access_token', tokenData.access_token);
         sessionStorage.setItem('spotify_token_expiry', expiryTime.toString());
 
-        // Clean up URL hash
-        window.location.hash = '';
+        if (tokenData.refresh_token) {
+            sessionStorage.setItem('spotify_refresh_token', tokenData.refresh_token);
+        }
+
+        sessionStorage.removeItem('spotify_code_verifier');
+
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
 
         console.log('Spotify authentication successful');
+    } catch (error) {
+        console.error('Failed to exchange code for token:', error);
     }
 }
 
@@ -173,6 +285,8 @@ function getAccessToken() {
 function clearAccessToken() {
     sessionStorage.removeItem('spotify_access_token');
     sessionStorage.removeItem('spotify_token_expiry');
+    sessionStorage.removeItem('spotify_refresh_token');
+    sessionStorage.removeItem('spotify_code_verifier');
 }
 
 /**
@@ -196,8 +310,8 @@ function getTokenTimeRemaining() {
 }
 
 // Check for auth callback on page load
-if (window.location.hash.includes('access_token')) {
-    parseAuthCallback(window.location.hash);
+if (window.location.search.includes('code=')) {
+    parseAuthCallback(window.location.href);
 }
 
 // Export for use in other modules
