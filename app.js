@@ -236,6 +236,19 @@ class MusicBingoApp {
 
         try {
             console.log('Fetching playlists...');
+
+            // Get and display user info
+            const user = await getCurrentUser();
+            console.log('Current Spotify user:', {
+                id: user.id,
+                display_name: user.display_name,
+                email: user.email,
+                product: user.product // premium, free, etc.
+            });
+
+            // Show user info in UI
+            this.showToast(`Logged in as: ${user.display_name || user.id}${user.email ? ` (${user.email})` : ''}`);
+
             const playlists = await getAllUserPlaylists();
             console.log(`Loaded ${playlists.length} playlists`);
 
