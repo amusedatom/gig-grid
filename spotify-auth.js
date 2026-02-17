@@ -8,6 +8,8 @@ const SPOTIFY_CONFIG = {
     clientId: 'YOUR_SPOTIFY_CLIENT_ID',
     redirectUri: window.location.origin + window.location.pathname,
     scopes: [
+        'user-read-email',
+        'user-read-private',
         'playlist-read-private',
         'playlist-read-collaborative'
     ]
