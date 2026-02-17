@@ -177,6 +177,14 @@ async function authenticateSpotify() {
                                     sessionStorage.setItem('spotify_refresh_token', tokenData.refresh_token);
                                 }
 
+                                // Log granted scopes for debugging
+                                if (tokenData.scope) {
+                                    console.log('Granted scopes:', tokenData.scope);
+                                    sessionStorage.setItem('spotify_granted_scopes', tokenData.scope);
+                                } else {
+                                    console.warn('No scopes in token response!');
+                                }
+
                                 // Clean up
                                 sessionStorage.removeItem('spotify_code_verifier');
 
