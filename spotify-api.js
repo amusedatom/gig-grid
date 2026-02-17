@@ -75,18 +75,35 @@ async function getAllUserPlaylists() {
     let offset = 0;
     const limit = 50;
 
-    while (true) {
-        const response = await getUserPlaylists(limit, offset);
-        playlists.push(...response.items);
+    try {
+        while (true) {
+            const response = await getUserPlaylists(limit, offset);
 
-        if (!response.next) {
-            break;
+            console.log('Playlist API response:', response);
+
+            if (!response) {
+                throw new Error('No response from Spotify API');
+            }
+
+            if (!response.items) {
+                console.error('Response missing items array:', response);
+                throw new Error('Invalid response format from Spotify API');
+            }
+
+            playlists.push(...response.items);
+
+            if (!response.next) {
+                break;
+            }
+
+            offset += limit;
         }
 
-        offset += limit;
+        return playlists;
+    } catch (error) {
+        console.error('Error fetching playlists:', error);
+        throw error;
     }
-
-    return playlists;
 }
 
 /**
