@@ -192,16 +192,18 @@ async function getAllPlaylistTracks(playlistId) {
         if (response.items?.[0]) {
             console.log('First item structure:', {
                 hasTrack: !!response.items[0].track,
+                hasItem: !!response.items[0].item,
                 trackKeys: response.items[0].track ? Object.keys(response.items[0].track) : 'no track',
+                itemKeys: response.items[0].item ? Object.keys(response.items[0].item) : 'no item',
                 trackId: response.items[0].track?.id,
-                fullItem: response.items[0]
+                itemId: response.items[0].item?.id,
             });
         }
 
-        // Filter out null tracks (deleted/unavailable)
+        // 2026 API change: track data is now at item.item instead of item.track
         const validTracks = response.items
-            .filter(item => item.track && item.track.id)
-            .map(item => item.track);
+            .filter(item => item.item && item.item.id)
+            .map(item => item.item);
 
         console.log(`Found ${validTracks.length} valid tracks in this batch`);
 
