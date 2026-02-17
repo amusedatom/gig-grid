@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Auth Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #log {
+            background: #111;
+            padding: 10px;
+            margin-top: 20px;
+            border: 1px solid #0f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .error {
+            color: #f00;
+        }
+
+        .success {
+            color: #0f0;
+        }
+
+        .info {
+            color: #ff0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Spotify Authentication Diagnostic</h1>
+
+    <div>
+        <p><strong>Current Config:</strong></p>
+        <div id="config"></div>
+    </div>
+
+    <button onclick="testAuth()">Test Spotify Login</button>
+    <button onclick="checkToken()">Check Current Token</button>
+    <button onclick="clearToken()">Clear Token</button>
+
+    <div id="log"></div>
+
+    <script src="./spotify-auth.js"></script>
+    <script>
+        const logDiv = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Display config
+        document.getElementById('config').innerHTML = `
+            <div>Client ID: ${SPOTIFY_CONFIG.clientId}</div>
+            <div>Redirect URI: ${SPOTIFY_CONFIG.redirectUri}</div>
+            <div>Scopes: ${SPOTIFY_CONFIG.scopes.join(', ')}</div>
+        `;
+
+        async function testAuth() {
+            log('Starting authentication test...', 'info');
+
+            try {
+                log('Opening Spotify login popup...', 'info');
+                const token = await authenticateSpotify();
+
+                if (token) {
+                    log('✅ Authentication successful!', 'success');
+                    log(`Token: ${token.substring(0, 20)}...`, 'success');
+                } else {
+                    log('❌ No token received', 'error');
+                }
+            } catch (error) {
+                log(`❌ Authentication failed: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function checkToken() {
+            const token = getAccessToken();
+
+            if (token) {
+                log('✅ Valid token found', 'success');
+                log(`Token: ${token.substring(0, 20)}...`, 'success');
+
+                const expiry = sessionStorage.getItem('spotify_token_expiry');
+                const remaining = parseInt(expiry) - Date.now();
+                const minutes = Math.floor(remaining / 60000);
+                log(`Expires in: ${minutes} minutes`, 'info');
+            } else {
+                log('❌ No valid token found', 'error');
+            }
+        }
+
+        function clearToken() {
+            clearAccessToken();
+            log('Token cleared', 'info');
+        }
+
+        // Check for auth callback on load
+        if (window.location.hash.includes('access_token')) {
+            log('Auth callback detected in URL!', 'success');
+            parseAuthCallback(window.location.hash);
+            checkToken();
+        }
+
+        log('Diagnostic page loaded', 'info');
+    </script>
+</body>
+
+</html>
