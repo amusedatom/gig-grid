@@ -36,6 +36,18 @@ function encodeGameState(gameState) {
     } else if (gameState.mode === 'classic') {
         // Classic mode doesn't need track data in URL
         params.set('type', 'dnb');
+    } else if (gameState.mode === 'card') {
+        // Card builder mode - support both database IDs and custom songs
+        if (gameState.songIds && gameState.songIds.length > 0) {
+            // Using song database IDs (compact)
+            params.set('songs', gameState.songIds.join(','));
+        } else if (gameState.customSongs && gameState.customSongs.length > 0) {
+            // Using custom song names (Base64 encoded)
+            params.set('custom', encodeSongsToBase64(gameState.customSongs));
+        }
+        if (gameState.cardName) {
+            params.set('name', gameState.cardName);
+        }
     }
 
     return '#' + params.toString();
@@ -77,6 +89,29 @@ function decodeGameState(hash) {
             if (!state.playlistId) {
                 return null;
             }
+        } else if (mode === 'card') {
+            // Card builder mode - support both database IDs and custom songs
+            const songsParam = params.get('songs');
+            const customParam = params.get('custom');
+
+            if (songsParam) {
+                // Using song database IDs
+                state.songIds = songsParam.split(',').filter(id => id.trim() !== '');
+                if (state.songIds.length === 0) {
+                    return null;
+                }
+            } else if (customParam) {
+                // Using custom Base64-encoded songs
+                state.customSongs = decodeSongsFromBase64(customParam);
+                if (!state.customSongs || state.customSongs.length === 0) {
+                    return null;
+                }
+            } else {
+                // No songs provided
+                return null;
+            }
+
+            state.cardName = params.get('name') || 'Custom Card';
         }
 
         return state;
@@ -193,17 +228,104 @@ function migrateLegacyState() {
     }
 }
 
+/**
+ * Generate a random seed
+ * @returns {number} Random seed
+ */
+function generateGameSeed() {
+    return Math.floor(Math.random() * 1000000);
+}
+
+/**
+ * Encode song list to Base64 (for custom songs not in database)
+ * @param {Array<string>} songs - Array of song strings (e.g., ["Artist - Song", ...])
+ * @returns {string} Base64 encoded string
+ */
+function encodeSongsToBase64(songs) {
+    try {
+        const jsonString = JSON.stringify(songs);
+        return btoa(encodeURIComponent(jsonString));
+    } catch (e) {
+        console.error('Failed to encode songs:', e);
+        return '';
+    }
+}
+
+/**
+ * Decode Base64 song list
+ * @param {string} base64String - Base64 encoded song list
+ * @returns {Array<string>|null} Array of song strings or null if invalid
+ */
+function decodeSongsFromBase64(base64String) {
+    try {
+        const jsonString = decodeURIComponent(atob(base64String));
+        const songs = JSON.parse(jsonString);
+        return Array.isArray(songs) ? songs : null;
+    } catch (e) {
+        console.error('Failed to decode songs:', e);
+        return null;
+    }
+}
+
+/**
+ * Generate multiple unique card permutations from a song pool
+ * @param {Array} songPool - Array of song IDs or song objects (min 25 items)
+ * @param {number} cardCount - Number of unique cards to generate
+ * @param {string} cardName - Name for the cards
+ * @returns {Array} Array of game state objects with unique seeds
+ */
+function generateCardPermutations(songPool, cardCount = 5, cardName = 'Custom Card') {
+    if (!songPool || songPool.length < 25) {
+        throw new Error('Song pool must have at least 25 songs');
+    }
+
+    const cards = [];
+
+    for (let i = 0; i < cardCount; i++) {
+        const gameId = generateGameId();
+        const seed = generateGameSeed();
+
+        const gameState = {
+            gameId,
+            mode: 'card',
+            seed,
+            timestamp: Date.now(),
+            cardName: `${cardName} - #${i + 1}`
+        };
+
+        // Check if songPool contains IDs (strings) or objects
+        if (typeof songPool[0] === 'string') {
+            // Song IDs from database
+            gameState.songIds = songPool;
+        } else {
+            // Custom song objects - encode to Base64
+            const songStrings = songPool.map(s =>
+                typeof s === 'object' ? `${s.artist} - ${s.name}` : s
+            );
+            gameState.customSongs = songStrings;
+        }
+
+        cards.push(gameState);
+    }
+
+    return cards;
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         encodeGameState,
         decodeGameState,
         generateGameId,
+        generateGameSeed,
         createShareableUrl,
         getCurrentGameFromUrl,
         updateUrlHash,
         saveGameProgress,
         loadGameProgress,
-        migrateLegacyState
+        migrateLegacyState,
+        encodeSongsToBase64,
+        decodeSongsFromBase64,
+        generateCardPermutations
     };
 }

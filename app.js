@@ -1,5 +1,5 @@
 // ========================================
-// MUSIC BINGO - MULTIPLAYER EDITION
+// GIG BINGO
 // Main Application Logic
 // ========================================
 
@@ -48,12 +48,17 @@ class MusicBingoApp {
         // Modals
         this.playlistModal = document.getElementById('playlistModal');
         this.qrModal = document.getElementById('qrModal');
+        this.builderModal = document.getElementById('builderModal');
+        this.shareCardsModal = document.getElementById('shareCardsModal');
 
         // Current game state
         this.currentGame = null;
         this.currentTracks = [];
         this.currentMode = 'classic';
         this.checkState = [];
+
+        // Card builder
+        this.cardBuilder = new CardBuilder();
 
         // Migrate legacy state
         migrateLegacyState();
@@ -95,7 +100,7 @@ class MusicBingoApp {
             artist: ''
         }));
 
-        this.gameTitle.textContent = 'DnB';
+        this.gameTitle.textContent = 'Gig';
         this.gameInfo.style.display = 'none';
         this.modeSelector.style.display = 'flex';
 
@@ -103,8 +108,32 @@ class MusicBingoApp {
     }
 
     async startHostMode() {
-        // Show playlist modal
-        this.showPlaylistModal();
+        // Show host game modal with options
+        this.showHostGameOptions();
+    }
+
+    showHostGameOptions() {
+        this.playlistModal.classList.add('active');
+        document.getElementById('hostGameOptions').style.display = 'block';
+        document.getElementById('spotifyAuthSection').style.display = 'none';
+        document.getElementById('playlistListSection').style.display = 'none';
+    }
+
+    showCreateFromScratch() {
+        // Hide host options, show builder
+        this.hidePlaylistModal();
+        this.showBuilderModal();
+    }
+
+    showImportPlaylist() {
+        // Hide host options, show Spotify auth or playlist list
+        document.getElementById('hostGameOptions').style.display = 'none';
+
+        if (isAuthenticated()) {
+            this.showPlaylistList();
+        } else {
+            this.showSpotifyAuth();
+        }
     }
 
     async joinGame(gameState) {
@@ -117,7 +146,7 @@ class MusicBingoApp {
                 const gameData = await createGameFromPlaylist(gameState.playlistId, 25);
                 this.currentTracks = gameData.tracks;
 
-                this.gameTitle.textContent = 'Spotify';
+                this.gameTitle.textContent = 'Gig';
                 this.gameInfo.style.display = 'block';
                 this.gameInfoText.textContent = `Playing: ${gameState.playlistName}`;
                 this.modeSelector.style.display = 'none';
@@ -125,6 +154,39 @@ class MusicBingoApp {
             } catch (error) {
                 console.error('Failed to load Spotify game:', error);
                 this.showToast('Failed to load game. Starting classic mode.');
+                this.startClassicMode();
+                return;
+            }
+        } else if (gameState.mode === 'card') {
+            // Card builder mode
+            try {
+                let songs;
+                if (gameState.songIds) {
+                    // Using song database IDs
+                    songs = getSongsByIds(gameState.songIds);
+                } else if (gameState.customSongs) {
+                    // Using custom Base64-encoded songs
+                    songs = gameState.customSongs.map((songStr, index) => {
+                        const parts = songStr.split(' - ');
+                        return {
+                            id: `custom-${index}`,
+                            name: parts.slice(1).join(' - ') || songStr,
+                            artist: parts[0] || ''
+                        };
+                    });
+                } else {
+                    throw new Error('No songs in card state');
+                }
+
+                this.currentTracks = songs;
+                this.gameTitle.textContent = 'Gig';
+                this.gameInfo.style.display = 'block';
+                this.gameInfoText.textContent = `Playing: ${gameState.cardName}`;
+                this.modeSelector.style.display = 'none';
+
+            } catch (error) {
+                console.error('Failed to load card game:', error);
+                this.showToast('Failed to load card. Starting classic mode.');
                 this.startClassicMode();
                 return;
             }
@@ -180,6 +242,14 @@ class MusicBingoApp {
     updateCounter() {
         const checkedCount = this.checkState.filter(Boolean).length;
         this.counter.textContent = checkedCount;
+        this.updateScoreBadge();
+    }
+
+    updateScoreBadge() {
+        const { score, lines } = this.calculateScore();
+        const badge = document.getElementById('scoreBadge');
+        badge.textContent = `⭐ ${score}`;
+        badge.classList.toggle('has-lines', lines > 0);
     }
 
     toggleCell(index) {
@@ -207,6 +277,189 @@ class MusicBingoApp {
     }
 
     // ========================================
+    // CARD BUILDER MODE
+    // ========================================
+
+    startBuilderMode() {
+        this.showBuilderModal();
+    }
+
+    showBuilderModal() {
+        this.builderModal.classList.add('active');
+
+        // Load game title from builder
+        const titleInput = document.getElementById('builderGameTitle');
+        if (titleInput) {
+            titleInput.value = this.cardBuilder.builderName || '';
+        }
+
+        this.renderBuilderUI();
+    }
+
+    hideBuilderModal() {
+        this.builderModal.classList.remove('active');
+    }
+
+    renderBuilderUI() {
+        // Update song count display
+        const songCount = this.cardBuilder.getSongCount();
+        document.getElementById('builderSongCount').textContent = songCount;
+
+        // Update game title from input
+        const titleInput = document.getElementById('builderGameTitle');
+        if (titleInput && titleInput.value) {
+            this.cardBuilder.setName(titleInput.value);
+        }
+
+        // Enable/disable share button
+        const shareBtn = document.getElementById('builderShareBtn');
+        if (this.cardBuilder.canShareCards()) {
+            shareBtn.disabled = false;
+            shareBtn.textContent = `Share Cards (${songCount} songs)`;
+        } else {
+            shareBtn.disabled = true;
+            shareBtn.textContent = `Add ${25 - songCount} more songs`;
+        }
+
+        // Render selected songs list
+        this.renderSelectedSongs();
+    }
+
+    renderSelectedSongs() {
+        const container = document.getElementById('selectedSongsList');
+        const songs = this.cardBuilder.getSongs();
+
+        if (songs.length === 0) {
+            container.innerHTML = '<p class="empty-state">No songs added yet. Search and add songs below.</p>';
+            return;
+        }
+
+        container.innerHTML = songs.map((song, index) => `
+            <div class="selected-song-item">
+                <span class="song-display">${song.display}</span>
+                <button class="btn-remove" data-index="${index}">×</button>
+            </div>
+        `).join('');
+
+        // Attach remove listeners
+        container.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.index);
+                this.cardBuilder.removeSong(index);
+                this.renderBuilderUI();
+            });
+        });
+    }
+
+    performSongSearch(query) {
+        const results = searchSongs(query);
+        const container = document.getElementById('songSearchResults');
+
+        if (results.length === 0) {
+            container.innerHTML = '<p class="empty-state">No songs found</p>';
+            return;
+        }
+
+        container.innerHTML = results.slice(0, 50).map(song => `
+            <div class="song-search-item" data-song='${JSON.stringify(song)}'>
+                <span class="song-display">${song.display}</span>
+                <button class="btn-add">+</button>
+            </div>
+        `).join('');
+
+        // Attach add listeners
+        container.querySelectorAll('.song-search-item').forEach(item => {
+            item.querySelector('.btn-add').addEventListener('click', () => {
+                const song = JSON.parse(item.dataset.song);
+                const added = this.cardBuilder.addSong(song);
+                if (added) {
+                    this.renderBuilderUI();
+                    this.showToast(`Added: ${song.display}`);
+                } else {
+                    this.showToast('Song already added');
+                }
+            });
+        });
+    }
+
+    addCustomSong() {
+        const input = document.getElementById('songSearchInput');
+        const query = input.value.trim();
+
+        if (!query) {
+            this.showToast('Enter a song name first');
+            return;
+        }
+
+        // Parse query: "Artist - Song" or just "Song"
+        let artist = '';
+        let name = query;
+
+        if (query.includes(' - ')) {
+            const parts = query.split(' - ');
+            artist = parts[0].trim();
+            name = parts.slice(1).join(' - ').trim();
+        }
+
+        const song = {
+            id: `custom-${Date.now()}`,
+            name: name,
+            artist: artist,
+            display: query
+        };
+
+        const added = this.cardBuilder.addSong(song);
+        if (added) {
+            this.renderBuilderUI();
+            this.showToast(`Added Custom: ${query}`);
+            input.value = ''; // Clear input
+            this.performSongSearch(''); // Refresh results
+        } else {
+            this.showToast('Song already added');
+        }
+    }
+
+    showShareCardsModal() {
+        if (!this.cardBuilder.canShareCards()) {
+            this.showToast('Need at least 25 songs to share cards');
+            return;
+        }
+
+        // Sync name from input
+        const titleInput = document.getElementById('builderGameTitle');
+        if (titleInput && titleInput.value) {
+            this.cardBuilder.setName(titleInput.value);
+        }
+
+        // Initialize card counter
+        this.cardCounter = 1;
+
+        this.shareCardsModal.classList.add('active');
+        this.generateNewCard();
+    }
+
+    hideShareCardsModal() {
+        this.shareCardsModal.classList.remove('active');
+        this.cardCounter = 0;
+    }
+
+    generateNewCard() {
+        try {
+            // Generate a single new card
+            const cards = this.cardBuilder.generateCards(1);
+            const card = cards[0];
+
+            // Update UI
+            document.getElementById('currentCardName').textContent = `${this.cardBuilder.builderName} - #${this.cardCounter}`;
+            document.getElementById('currentCardUrl').value = card.url;
+        } catch (error) {
+            console.error('Failed to generate card:', error);
+            this.showToast('Failed to generate card');
+        }
+    }
+
+
+    // ========================================
     // SPOTIFY HOST MODE
     // ========================================
 
@@ -225,11 +478,13 @@ class MusicBingoApp {
     }
 
     showSpotifyAuth() {
+        document.getElementById('hostGameOptions').style.display = 'none';
         document.getElementById('spotifyAuthSection').style.display = 'block';
         document.getElementById('playlistListSection').style.display = 'none';
     }
 
     async showPlaylistList() {
+        document.getElementById('hostGameOptions').style.display = 'none';
         document.getElementById('spotifyAuthSection').style.display = 'none';
         document.getElementById('playlistListSection').style.display = 'block';
         document.getElementById('playlistLoading').style.display = 'block';
@@ -368,7 +623,7 @@ class MusicBingoApp {
             this.currentTracks = gameData.tracks;
             this.currentMode = 'spotify';
 
-            this.gameTitle.textContent = 'Spotify';
+            this.gameTitle.textContent = 'Gig';
             this.gameInfo.style.display = 'block';
             this.gameInfoText.textContent = `Playing: ${playlist.name}`;
             this.modeSelector.style.display = 'none';
@@ -385,18 +640,51 @@ class MusicBingoApp {
     }
 
     // ========================================
+    // SCORING
+    // ========================================
+
+    calculateScore() {
+        const size = 5;
+        const checked = this.checkState;
+        const songs = checked.filter(Boolean).length;
+        let lines = 0;
+
+        // Check rows
+        for (let r = 0; r < size; r++) {
+            if (checked.slice(r * size, r * size + size).every(Boolean)) lines++;
+        }
+
+        // Check columns
+        for (let c = 0; c < size; c++) {
+            let full = true;
+            for (let r = 0; r < size; r++) {
+                if (!checked[r * size + c]) { full = false; break; }
+            }
+            if (full) lines++;
+        }
+
+        // Check main diagonal (top-left → bottom-right)
+        if ([0, 6, 12, 18, 24].every(i => checked[i])) lines++;
+
+        // Check anti-diagonal (top-right → bottom-left)
+        if ([4, 8, 12, 16, 20].every(i => checked[i])) lines++;
+
+        const score = songs + (lines * 3);
+        return { score, songs, lines };
+    }
+
+    // ========================================
     // SHARING
     // ========================================
 
     async shareProgress() {
-        const checkedCount = this.checkState.filter(Boolean).length;
+        const { score, songs, lines } = this.calculateScore();
         const total = this.currentTracks.length;
 
-        let shareText;
-        if (this.currentMode === 'spotify') {
-            shareText = `🎵 Music Bingo: ${checkedCount}/${total} tracks found! 🎧`;
-        } else {
-            shareText = `🔊 DnB Bingo: ${checkedCount}/${total} anthems found! 🎧`;
+        let shareText = `🎶 Gig Bingo — Score: ${score}\n`;
+        shareText += `📀 ${songs}/${total} tracks`;
+        if (lines > 0) {
+            shareText += ` | 🔥 ${lines} line${lines > 1 ? 's' : ''} completed!`;
         }
 
         const shareUrl = window.location.href;
@@ -405,7 +693,7 @@ class MusicBingoApp {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Music Bingo Progress',
+                    title: 'Gig Bingo Score',
                     text: shareText,
                     url: shareUrl
                 });
@@ -420,7 +708,7 @@ class MusicBingoApp {
         // Fallback to clipboard
         try {
             await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-            this.showToast('Progress copied to clipboard! 📋');
+            this.showToast('Score copied to clipboard! 📋');
         } catch (err) {
             console.error('Failed to copy to clipboard:', err);
             this.showToast('Share failed. Please try again.');
@@ -450,13 +738,16 @@ class MusicBingoApp {
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--neon-green);
-            color: var(--bg-black);
-            padding: 1rem 2rem;
+            background: var(--accent);
+            color: var(--text-inverse);
+            padding: 0.75rem 1.5rem;
             border-radius: 8px;
-            font-weight: 700;
-            z-index: 1000;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 2000;
             animation: slideUp 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         `;
 
         document.body.appendChild(toast);
@@ -505,6 +796,130 @@ class MusicBingoApp {
                 }
             });
         });
+
+        // Host game option buttons
+        if (document.getElementById('createFromScratchBtn')) {
+            document.getElementById('createFromScratchBtn').addEventListener('click', () => {
+                this.showCreateFromScratch();
+            });
+        }
+
+        if (document.getElementById('importPlaylistBtn')) {
+            document.getElementById('importPlaylistBtn').addEventListener('click', () => {
+                this.showImportPlaylist();
+            });
+        }
+
+        // Back buttons
+        if (document.getElementById('backToHostOptions')) {
+            document.getElementById('backToHostOptions').addEventListener('click', () => {
+                this.showHostGameOptions();
+            });
+        }
+
+        if (document.getElementById('backToHostOptionsFromList')) {
+            document.getElementById('backToHostOptionsFromList').addEventListener('click', () => {
+                this.showHostGameOptions();
+            });
+        }
+
+        // Current card copy/share buttons - regenerate after each share
+        if (document.getElementById('copyCurrentCardBtn')) {
+            document.getElementById('copyCurrentCardBtn').addEventListener('click', async () => {
+                const url = document.getElementById('currentCardUrl').value;
+                const success = await copyUrlToClipboard(url);
+                if (success) {
+                    this.showToast('Link copied! 📋');
+                    // Increment counter and generate new card
+                    this.cardCounter++;
+                    this.generateNewCard();
+                }
+            });
+        }
+
+        if (document.getElementById('whatsappCurrentCardBtn')) {
+            document.getElementById('whatsappCurrentCardBtn').addEventListener('click', () => {
+                const url = document.getElementById('currentCardUrl').value;
+                const text = encodeURIComponent(`Join my Gig Bingo game! ${url}`);
+                window.open(`https://wa.me/?text=${text}`, '_blank');
+                // Increment counter and generate new card
+                this.cardCounter++;
+                this.generateNewCard();
+            });
+        }
+
+        // Builder modal events
+        if (document.getElementById('closeBuilderModal')) {
+            document.getElementById('closeBuilderModal').addEventListener('click', () => {
+                this.hideBuilderModal();
+            });
+        }
+
+        if (document.getElementById('builderShareBtn')) {
+            document.getElementById('builderShareBtn').addEventListener('click', () => {
+                this.showShareCardsModal();
+            });
+        }
+
+        if (document.getElementById('songSearchInput')) {
+            const searchInput = document.getElementById('songSearchInput');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.performSongSearch(e.target.value);
+                }, 300);
+            });
+
+            // Handle "Enter" key to add custom
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.addCustomSong();
+                }
+            });
+
+            // Initial search to show all songs
+            this.performSongSearch('');
+        }
+
+        // Add custom song button
+        if (document.getElementById('addCustomSongBtn')) {
+            document.getElementById('addCustomSongBtn').addEventListener('click', () => {
+                this.addCustomSong();
+            });
+        }
+
+        // Title input listener
+        if (document.getElementById('builderGameTitle')) {
+            document.getElementById('builderGameTitle').addEventListener('input', (e) => {
+                this.cardBuilder.setName(e.target.value);
+            });
+        }
+
+        // Share cards modal events
+        if (document.getElementById('closeShareCardsModal')) {
+            document.getElementById('closeShareCardsModal').addEventListener('click', () => {
+                this.hideShareCardsModal();
+            });
+        }
+
+        // Close builder modals on background click
+        if (this.builderModal) {
+            this.builderModal.addEventListener('click', (e) => {
+                if (e.target === this.builderModal) {
+                    this.hideBuilderModal();
+                }
+            });
+        }
+
+        if (this.shareCardsModal) {
+            this.shareCardsModal.addEventListener('click', (e) => {
+                if (e.target === this.shareCardsModal) {
+                    this.hideShareCardsModal();
+                }
+            });
+        }
 
         // Spotify login
         document.getElementById('spotifyLoginBtn').addEventListener('click', async () => {

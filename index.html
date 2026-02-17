@@ -4,26 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#000000">
-    <meta name="description" content="Multiplayer Bingo with Spotify playlists - Track anthems at festivals offline!">
+    <meta name="theme-color" content="#f5a623">
+    <meta name="description"
+        content="Gig Bingo — Create and share music bingo cards for any gig, festival or party. Works offline!">
 
     <!-- OpenGraph Meta Tags -->
-    <meta property="og:title" content="Music Bingo - Multiplayer Edition">
-    <meta property="og:description" content="Create custom bingo games from Spotify playlists. Works 100% offline!">
+    <meta property="og:title" content="Gig Bingo">
+    <meta property="og:description"
+        content="Create and share music bingo cards for any gig, festival or party. Works offline!">
     <meta property="og:type" content="website">
     <meta property="og:image" content="./icon-512.png">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Music Bingo - Multiplayer Edition">
-    <meta name="twitter:description" content="Create custom bingo games from Spotify playlists. Works 100% offline!">
+    <meta name="twitter:title" content="Gig Bingo">
+    <meta name="twitter:description"
+        content="Create and share music bingo cards for any gig, festival or party. Works offline!">
 
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Music Bingo">
+    <meta name="apple-mobile-web-app-title" content="Gig Bingo">
 
-    <title>Music Bingo - Multiplayer Edition</title>
+    <title>Gig Bingo</title>
 
     <!-- Manifest -->
     <link rel="manifest" href="./manifest.json">
@@ -33,6 +36,11 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
     <link rel="apple-touch-icon" href="./icon-192.png">
 
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="./style.css">
 </head>
@@ -41,16 +49,17 @@
     <div class="container">
         <header class="header">
             <h1 class="title">
-                <span class="neon-text" id="gameTitle">Music</span> Bingo
+                <span class="brand-accent" id="gameTitle">Gig</span> Bingo
             </h1>
             <div class="counter">
                 <span id="counter">0</span>/<span id="total">25</span>
+                <span class="score-badge" id="scoreBadge" title="Score">⭐ 0</span>
             </div>
         </header>
 
         <!-- Mode Selector -->
         <div class="mode-selector" id="modeSelector">
-            <button class="mode-btn active" data-mode="classic">Classic DnB</button>
+            <button class="mode-btn active" data-mode="classic">Quick Play</button>
             <button class="mode-btn" data-mode="host">Host Game</button>
         </div>
 
@@ -65,25 +74,44 @@
 
         <footer class="footer">
             <button id="resetBtn" class="btn btn-reset">Reset Board</button>
-            <button id="shareBtn" class="btn btn-share">Share Progress 🔊</button>
+            <button id="shareBtn" class="btn btn-share">Share Progress</button>
         </footer>
     </div>
 
-    <!-- Playlist Selection Modal -->
+    <!-- Host Game Modal -->
     <div class="modal" id="playlistModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Select Spotify Playlist</h2>
+                <h2>Host Game</h2>
                 <button class="modal-close" id="closePlaylistModal">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="spotifyAuthSection">
+                <!-- Host Game Options -->
+                <div id="hostGameOptions" class="host-game-options">
+                    <button class="host-option-btn" id="createFromScratchBtn">
+                        <span class="option-icon">✏️</span>
+                        <h3>Create from Scratch</h3>
+                        <p>Build a custom card by selecting songs</p>
+                    </button>
+                    <button class="host-option-btn" id="importPlaylistBtn">
+                        <span class="option-icon">♫</span>
+                        <h3>Import Playlist</h3>
+                        <p>Use a Spotify playlist</p>
+                    </button>
+                </div>
+
+                <!-- Spotify Auth Section (shown when Import Playlist is clicked) -->
+                <div id="spotifyAuthSection" style="display: none;">
+                    <button class="btn-back" id="backToHostOptions">← Back</button>
                     <p>Connect to Spotify to select a playlist</p>
                     <button class="btn btn-spotify" id="spotifyLoginBtn">
                         <span class="spotify-icon">♫</span> Connect Spotify
                     </button>
                 </div>
+
+                <!-- Playlist List Section -->
                 <div id="playlistListSection" style="display: none;">
+                    <button class="btn-back" id="backToHostOptionsFromList">← Back</button>
                     <div class="search-box">
                         <input type="text" id="playlistSearch" placeholder="Search playlists...">
                     </div>
@@ -118,10 +146,77 @@
         </div>
     </div>
 
+    <!-- Card Builder Modal -->
+    <div class="modal" id="builderModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Build Your Card</h2>
+                <button class="modal-close" id="closeBuilderModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="builder-header">
+                    <div class="builder-info">
+                        <input type="text" id="builderGameTitle" class="game-title-input"
+                            placeholder="Game Title (e.g., Friday Night Bingo)" maxlength="50">
+                        <p>Songs selected: <strong id="builderSongCount">0</strong></p>
+                    </div>
+                    <button class="btn btn-primary" id="builderShareBtn" disabled>Add 25 more songs</button>
+                </div>
+
+                <div class="builder-content">
+                    <!-- Selected Songs -->
+                    <div class="builder-section">
+                        <h3>Your Songs</h3>
+                        <div id="selectedSongsList" class="selected-songs-list">
+                            <p class="empty-state">No songs added yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Song Search -->
+                    <div class="builder-section">
+                        <h3>Add Songs</h3>
+                        <div class="search-container">
+                            <input type="text" id="songSearchInput" class="search-input"
+                                placeholder="Search for songs...">
+                            <button class="btn btn-secondary" id="addCustomSongBtn">Add Custom</button>
+                        </div>
+                        <div id="songSearchResults" class="song-search-results">
+                            <!-- Search results will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Cards Modal -->
+    <div class="modal" id="shareCardsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Share Card</h2>
+                <button class="modal-close" id="closeShareCardsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Each time you share, a new unique card is generated!</p>
+
+                <div class="shareable-card-single">
+                    <h4 id="currentCardName">Card #1</h4>
+                    <div class="card-url-container">
+                        <input type="text" id="currentCardUrl" readonly class="card-url-input">
+                        <button class="btn btn-copy" id="copyCurrentCardBtn">Copy & Next</button>
+                        <button class="btn btn-whatsapp" id="whatsappCurrentCardBtn">WhatsApp & Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="./libs/qrcode.min.js"></script>
     <script src="./seed-random.js"></script>
+    <script src="./song-database.js"></script>
     <script src="./game-state.js"></script>
+    <script src="./builder.js"></script>
     <script src="./spotify-auth.js"></script>
     <script src="./spotify-api.js"></script>
     <script src="./qr-generator.js"></script>

@@ -1,11 +1,11 @@
 {
-  "name": "DnB Bingo - Rave Edition",
-  "short_name": "DnB Bingo",
-  "description": "Track classic and modern Drum & Bass anthems at festivals. Works 100% offline!",
+  "name": "Gig Bingo",
+  "short_name": "Gig Bingo",
+  "description": "Create and share music bingo cards for any gig, festival or party. Works offline!",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#121214",
+  "theme_color": "#f5a623",
   "orientation": "portrait",
   "icons": [
     {
@@ -21,6 +21,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["entertainment", "music", "games"],
+  "categories": [
+    "entertainment",
+    "music",
+    "games"
+  ],
   "screenshots": []
 }
