@@ -183,10 +183,18 @@ async function getAllPlaylistTracks(playlistId) {
     while (true) {
         const response = await getPlaylistTracks(playlistId, limit, offset);
 
+        console.log('Playlist items response:', {
+            total: response.total,
+            itemsLength: response.items?.length,
+            firstItem: response.items?.[0]
+        });
+
         // Filter out null tracks (deleted/unavailable)
         const validTracks = response.items
             .filter(item => item.track && item.track.id)
             .map(item => item.track);
+
+        console.log(`Found ${validTracks.length} valid tracks in this batch`);
 
         tracks.push(...validTracks);
 
@@ -197,6 +205,7 @@ async function getAllPlaylistTracks(playlistId) {
         offset += limit;
     }
 
+    console.log(`Total tracks fetched: ${tracks.length}`);
     return tracks;
 }
 
