@@ -284,7 +284,11 @@ class MusicBingoApp {
 
             const image = document.createElement('img');
             image.className = 'playlist-image';
-            image.src = playlist.images[0]?.url || '';
+            // Handle null/empty images array
+            const imageUrl = (playlist.images && playlist.images.length > 0)
+                ? playlist.images[0].url
+                : '';
+            image.src = imageUrl;
             image.alt = playlist.name;
 
             const info = document.createElement('div');
