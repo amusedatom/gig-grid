@@ -3,34 +3,6 @@
 // Main Application Logic
 // ========================================
 
-// 25 Classic and Modern Drum & Bass Anthems (Classic Mode)
-const DNB_ANTHEMS = [
-    "Pendulum - Tarantula",
-    "Chase & Status - End Credits",
-    "Sub Focus - Rock It",
-    "Netsky - Come Alive",
-    "High Contrast - If We Ever",
-    "Camo & Krooked - Climax",
-    "Wilkinson - Afterglow",
-    "Sigma - Nobody to Love",
-    "Andy C - Heartbeat Loud",
-    "Calibre - Drop It Down",
-    "Noisia - Stigma",
-    "Mefjus - Suicide Bassline",
-    "Dimension - UK",
-    "Culture Shock - Bunker",
-    "Friction - Long Gone Memory",
-    "Loadstar - Stepped Outside",
-    "Logistics - The Trip",
-    "Danny Byrd - Sweet Harmony",
-    "Roni Size - Brown Paper Bag",
-    "Goldie - Inner City Life",
-    "LTJ Bukem - Horizons",
-    "DJ Marky - LK",
-    "Hybrid Minds - Touch",
-    "Etherwood - Souvenirs",
-    "Metrik - Freefall"
-];
 
 class MusicBingoApp {
     constructor() {
@@ -43,7 +15,9 @@ class MusicBingoApp {
         this.gameTitle = document.getElementById('gameTitle');
         this.gameInfo = document.getElementById('gameInfo');
         this.gameInfoText = document.getElementById('gameInfoText');
-        this.modeSelector = document.getElementById('modeSelector');
+        this.welcomePage = document.getElementById('welcomePage');
+        this.gameFooter = document.getElementById('gameFooter');
+        this.headerCounter = document.getElementById('headerCounter');
 
         // Modals
         this.playlistModal = document.getElementById('playlistModal');
@@ -54,7 +28,8 @@ class MusicBingoApp {
         // Current game state
         this.currentGame = null;
         this.currentTracks = [];
-        this.currentMode = 'classic';
+        this.currentMode = null;
+        this.isFrozenView = false;
         this.checkState = [];
 
         // Card builder
@@ -71,10 +46,15 @@ class MusicBingoApp {
         const urlGame = getCurrentGameFromUrl();
 
         if (urlGame) {
-            await this.joinGame(urlGame);
+            if (urlGame.frozen) {
+                // Frozen view — read-only snapshot, don't overwrite anything
+                await this.enterFrozenView(urlGame);
+            } else {
+                await this.joinGame(urlGame);
+            }
         } else {
-            // Start in classic mode
-            this.startClassicMode();
+            // Show welcome page when no game URL present
+            this.showWelcomePage();
         }
 
         this.attachEventListeners();
@@ -84,27 +64,20 @@ class MusicBingoApp {
     // GAME MODES
     // ========================================
 
-    startClassicMode() {
-        this.currentMode = 'classic';
-        this.currentGame = {
-            gameId: 'classic',
-            mode: 'classic',
-            seed: 42, // Fixed seed for classic mode
-            timestamp: Date.now()
-        };
-
-        // Use DnB anthems
-        this.currentTracks = DNB_ANTHEMS.map((anthem, index) => ({
-            id: `dnb-${index}`,
-            name: anthem,
-            artist: ''
-        }));
-
-        this.gameTitle.textContent = 'Gig';
+    showWelcomePage() {
+        this.welcomePage.style.display = 'flex';
+        this.grid.style.display = 'none';
+        this.gameFooter.style.display = 'none';
         this.gameInfo.style.display = 'none';
-        this.modeSelector.style.display = 'flex';
+        this.headerCounter.style.display = 'none';
+        this.gameTitle.textContent = 'Gig';
+    }
 
-        this.loadGame();
+    hideWelcomePage() {
+        this.welcomePage.style.display = 'none';
+        this.grid.style.display = 'grid';
+        this.gameFooter.style.display = 'flex';
+        this.headerCounter.style.display = 'flex';
     }
 
     async startHostMode() {
@@ -149,12 +122,12 @@ class MusicBingoApp {
                 this.gameTitle.textContent = 'Gig';
                 this.gameInfo.style.display = 'block';
                 this.gameInfoText.textContent = `Playing: ${gameState.playlistName}`;
-                this.modeSelector.style.display = 'none';
+                this.hideWelcomePage();
 
             } catch (error) {
                 console.error('Failed to load Spotify game:', error);
-                this.showToast('Failed to load game. Starting classic mode.');
-                this.startClassicMode();
+                this.showToast('Failed to load game.');
+                this.showWelcomePage();
                 return;
             }
         } else if (gameState.mode === 'card') {
@@ -182,16 +155,16 @@ class MusicBingoApp {
                 this.gameTitle.textContent = 'Gig';
                 this.gameInfo.style.display = 'block';
                 this.gameInfoText.textContent = `Playing: ${gameState.cardName}`;
-                this.modeSelector.style.display = 'none';
+                this.hideWelcomePage();
 
             } catch (error) {
                 console.error('Failed to load card game:', error);
-                this.showToast('Failed to load card. Starting classic mode.');
-                this.startClassicMode();
+                this.showToast('Failed to load card.');
+                this.showWelcomePage();
                 return;
             }
         } else {
-            this.startClassicMode();
+            this.showWelcomePage();
             return;
         }
 
@@ -626,7 +599,7 @@ class MusicBingoApp {
             this.gameTitle.textContent = 'Gig';
             this.gameInfo.style.display = 'block';
             this.gameInfoText.textContent = `Playing: ${playlist.name}`;
-            this.modeSelector.style.display = 'none';
+            this.hideWelcomePage();
 
             this.loadGame();
 
@@ -687,7 +660,12 @@ class MusicBingoApp {
             shareText += ` | 🔥 ${lines} line${lines > 1 ? 's' : ''} completed!`;
         }
 
-        const shareUrl = window.location.href;
+        // Build a frozen snapshot URL instead of sharing the live game URL
+        const frozenState = Object.assign({}, this.currentGame, {
+            frozen: true,
+            checkedSnapshot: [...this.checkState]
+        });
+        const shareUrl = createShareableUrl(frozenState);
 
         // Try Web Share API
         if (navigator.share) {
@@ -713,6 +691,89 @@ class MusicBingoApp {
             console.error('Failed to copy to clipboard:', err);
             this.showToast('Share failed. Please try again.');
         }
+    }
+
+    // ========================================
+    // FROZEN VIEW (read-only shared board)
+    // ========================================
+
+    async enterFrozenView(gameState) {
+        this.isFrozenView = true;
+        document.body.classList.add('frozen-view');
+
+        // Load the game tracks (same as joinGame but without saving progress)
+        this.currentGame = gameState;
+        this.currentMode = gameState.mode;
+
+        if (gameState.mode === 'spotify') {
+            try {
+                const gameData = await createGameFromPlaylist(gameState.playlistId, 25);
+                this.currentTracks = gameData.tracks;
+            } catch (error) {
+                console.error('Failed to load frozen Spotify game:', error);
+                this.showToast('Failed to load shared board.');
+                this.exitFrozenView();
+                return;
+            }
+        } else if (gameState.mode === 'card') {
+            try {
+                let songs;
+                if (gameState.songIds) {
+                    songs = getSongsByIds(gameState.songIds);
+                } else if (gameState.customSongs) {
+                    songs = gameState.customSongs.map((songStr, index) => {
+                        const parts = songStr.split(' - ');
+                        return {
+                            id: `custom-${index}`,
+                            name: parts.slice(1).join(' - ') || songStr,
+                            artist: parts[0] || ''
+                        };
+                    });
+                } else {
+                    throw new Error('No songs in frozen state');
+                }
+                this.currentTracks = songs;
+            } catch (error) {
+                console.error('Failed to load frozen card game:', error);
+                this.showToast('Failed to load shared board.');
+                this.exitFrozenView();
+                return;
+            }
+        }
+
+        // Shuffle tracks using the same seed
+        const shuffled = seededShuffle(this.currentTracks, gameState.seed);
+        this.currentTracks = shuffled.slice(0, 25);
+
+        // Use the snapshot check state (not localStorage)
+        this.checkState = gameState.checkedSnapshot || Array(25).fill(false);
+
+        // Update UI
+        this.gameTitle.textContent = 'Gig';
+        this.gameInfo.style.display = 'block';
+        const gameName = gameState.playlistName || gameState.cardName || 'Classic';
+        this.gameInfoText.textContent = `Viewing: ${gameName}`;
+        this.hideWelcomePage();
+
+        // Show frozen banner, hide footer
+        document.getElementById('frozenBanner').style.display = 'flex';
+        document.querySelector('.footer').style.display = 'none';
+
+        this.total.textContent = this.currentTracks.length;
+        this.renderGrid();
+        this.updateCounter();
+    }
+
+    exitFrozenView() {
+        this.isFrozenView = false;
+        document.body.classList.remove('frozen-view');
+
+        // Hide frozen banner
+        document.getElementById('frozenBanner').style.display = 'none';
+
+        // Clear the hash and go back to the welcome page
+        history.replaceState(null, '', window.location.pathname);
+        this.showWelcomePage();
     }
 
     // ========================================
@@ -763,8 +824,9 @@ class MusicBingoApp {
     // ========================================
 
     attachEventListeners() {
-        // Grid clicks
+        // Grid clicks (disabled in frozen view)
         this.grid.addEventListener('click', (e) => {
+            if (this.isFrozenView) return;
             const cell = e.target.closest('.bingo-cell');
             if (cell) {
                 const index = parseInt(cell.dataset.index);
@@ -772,30 +834,25 @@ class MusicBingoApp {
             }
         });
 
+        // Exit frozen view button
+        const exitFrozenBtn = document.getElementById('exitFrozenBtn');
+        if (exitFrozenBtn) {
+            exitFrozenBtn.addEventListener('click', () => this.exitFrozenView());
+        }
+
         // Reset button
         this.resetBtn.addEventListener('click', () => this.resetBoard());
 
         // Share button
         this.shareBtn.addEventListener('click', () => this.shareProgress());
 
-        // Mode selector
-        const modeBtns = document.querySelectorAll('.mode-btn');
-        modeBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const mode = btn.dataset.mode;
-
-                // Update active state
-                modeBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                if (mode === 'classic') {
-                    window.location.hash = '';
-                    this.startClassicMode();
-                } else if (mode === 'host') {
-                    this.startHostMode();
-                }
+        // Welcome page Host Game button
+        const welcomeHostBtn = document.getElementById('welcomeHostBtn');
+        if (welcomeHostBtn) {
+            welcomeHostBtn.addEventListener('click', () => {
+                this.startHostMode();
             });
-        });
+        }
 
         // Host game option buttons
         if (document.getElementById('createFromScratchBtn')) {

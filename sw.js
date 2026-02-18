@@ -2,7 +2,7 @@
 // SERVICE WORKER - CACHE-FIRST STRATEGY
 // ========================================
 
-const CACHE_NAME = 'gig-bingo-v1';
+const CACHE_NAME = 'gig-bingo-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

@@ -128,41 +128,256 @@ body {
 }
 
 /* ========================================
-   MODE SELECTOR
+   WELCOME PAGE
    ======================================== */
 
-.mode-selector {
+.welcome-page {
+    flex: 1;
     display: flex;
-    gap: 4px;
-    padding: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-sm);
+    text-align: center;
+    overflow-y: auto;
+}
+
+.welcome-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Mini bingo grid illustration */
+.welcome-icon {
+    position: relative;
+    margin-bottom: var(--spacing-xs);
+}
+
+.mini-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    width: 100px;
+    height: 100px;
+}
+
+.mg-cell {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: 3px;
+    transition: all 0.3s ease;
 }
 
-.mode-btn {
-    flex: 1;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 600;
-    background: transparent;
-    color: var(--text-secondary);
-    border: 1px solid transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all var(--transition);
+.mg-cell.hit {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+    border-color: var(--accent);
+    animation: cell-pop 2s ease-in-out infinite;
 }
 
-.mode-btn:hover {
+.mg-cell.star {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+    border-color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+}
+
+/* Stagger the animation for the hit cells */
+.mg-cell.hit:nth-child(2) {
+    animation-delay: 0.0s;
+}
+
+.mg-cell.hit:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.mg-cell.hit:nth-child(6) {
+    animation-delay: 0.6s;
+}
+
+.mg-cell.hit:nth-child(8) {
+    animation-delay: 0.9s;
+}
+
+.mg-cell.hit:nth-child(10) {
+    animation-delay: 1.2s;
+}
+
+.mg-cell.hit:nth-child(12) {
+    animation-delay: 0.15s;
+}
+
+.mg-cell.hit:nth-child(14) {
+    animation-delay: 0.45s;
+}
+
+.mg-cell.hit:nth-child(16) {
+    animation-delay: 0.75s;
+}
+
+.mg-cell.hit:nth-child(18) {
+    animation-delay: 1.05s;
+}
+
+.mg-cell.hit:nth-child(20) {
+    animation-delay: 0.2s;
+}
+
+.mg-cell.hit:nth-child(22) {
+    animation-delay: 0.5s;
+}
+
+.mg-cell.hit:nth-child(24) {
+    animation-delay: 0.8s;
+}
+
+@keyframes cell-pop {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+}
+
+.welcome-notes {
+    position: absolute;
+    top: -12px;
+    right: -16px;
+    font-size: 1.5rem;
+    animation: float-note 3s ease-in-out infinite;
+}
+
+@keyframes float-note {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-6px) rotate(10deg);
+    }
+}
+
+.welcome-tagline {
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.3;
     color: var(--text-primary);
-    background: var(--bg-surface-hover);
 }
 
-.mode-btn.active {
+.accent-gradient {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 340px;
+    line-height: 1.5;
+}
+
+/* How it works step cards */
+.welcome-steps {
+    display: flex;
+    gap: var(--spacing-sm);
+    width: 100%;
+    max-width: 460px;
+}
+
+.step-card {
+    flex: 1;
+    position: relative;
+    background: rgba(28, 28, 32, 0.8);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-xs);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+
+.step-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245, 166, 35, 0.1);
+}
+
+.step-number {
+    position: absolute;
+    top: -8px;
+    left: -6px;
+    width: 22px;
+    height: 22px;
     background: var(--accent);
     color: var(--text-inverse);
-    border-color: var(--accent);
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-emoji {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.step-card h3 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 2px;
+}
+
+.step-card p {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* CTA button */
+.welcome-cta {
+    padding: 0.9rem 2rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+    color: var(--text-inverse);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 20px rgba(245, 166, 35, 0.3);
+    transition: all 0.3s ease;
+    margin-top: var(--spacing-xs);
+}
+
+.welcome-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(245, 166, 35, 0.45);
+}
+
+.welcome-cta:active {
+    transform: scale(0.97);
+}
+
+.welcome-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    max-width: 280px;
 }
 
 /* ========================================
@@ -620,9 +835,13 @@ body {
         width: 95%;
     }
 
-    .mode-btn {
-        font-size: 0.75rem;
-        padding: 0.4rem;
+    .welcome-steps {
+        flex-direction: column;
+        max-width: 280px;
+    }
+
+    .step-card {
+        padding: var(--spacing-xs);
     }
 }
 
@@ -1115,4 +1334,73 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+/* ========================================
+   FROZEN VIEW (read-only shared board)
+   ======================================== */
+
+.frozen-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(96, 165, 250, 0.12);
+    border: 1px solid rgba(96, 165, 250, 0.4);
+    border-radius: var(--radius-sm);
+    gap: var(--spacing-sm);
+}
+
+.frozen-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #93bbfc;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+/* Frozen cells: no interaction, cool color palette */
+body.frozen-view .bingo-cell {
+    pointer-events: none;
+    cursor: default;
+}
+
+body.frozen-view .bingo-cell:hover {
+    border-color: var(--border-color);
+    background: var(--bg-surface);
+}
+
+body.frozen-view .bingo-cell.checked {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+    border-color: #6366f1;
+    color: #fff;
+    animation: none;
+}
+
+body.frozen-view .bingo-cell.checked::before {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.frozen-view .header {
+    border-color: rgba(96, 165, 250, 0.25);
+}
+
+body.frozen-view .game-info {
+    background: rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.35);
+    color: #93bbfc;
+}
+
+body.frozen-view .score-badge {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    color: #a78bfa;
+}
+
+body.frozen-view .score-badge.has-lines {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: #fff;
 }

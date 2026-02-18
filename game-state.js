@@ -50,6 +50,12 @@ function encodeGameState(gameState) {
         }
     }
 
+    // Frozen view: encode checked state as compact hex bitmask
+    if (gameState.frozen && gameState.checkedSnapshot) {
+        params.set('view', 'frozen');
+        params.set('checked', encodeCheckedBitmask(gameState.checkedSnapshot));
+    }
+
     return '#' + params.toString();
 }
 
@@ -112,6 +118,15 @@ function decodeGameState(hash) {
             }
 
             state.cardName = params.get('name') || 'Custom Card';
+        }
+
+        // Frozen view: decode checked snapshot
+        if (params.get('view') === 'frozen') {
+            state.frozen = true;
+            const checkedParam = params.get('checked');
+            if (checkedParam) {
+                state.checkedSnapshot = decodeCheckedBitmask(checkedParam);
+            }
         }
 
         return state;
@@ -311,6 +326,36 @@ function generateCardPermutations(songPool, cardCount = 5, cardName = 'Custom Ca
     return cards;
 }
 
+/**
+ * Encode a boolean checked-state array as a compact hex bitmask
+ * 25 cells → 25 bits → 7 hex chars
+ * @param {Array<boolean>} checkedState - Array of 25 booleans
+ * @returns {string} Hex string
+ */
+function encodeCheckedBitmask(checkedState) {
+    let bits = 0;
+    for (let i = 0; i < checkedState.length && i < 25; i++) {
+        if (checkedState[i]) {
+            bits |= (1 << i);
+        }
+    }
+    return bits.toString(16).padStart(7, '0');
+}
+
+/**
+ * Decode a hex bitmask back into a boolean checked-state array
+ * @param {string} hex - Hex string (7 chars)
+ * @returns {Array<boolean>} Array of 25 booleans
+ */
+function decodeCheckedBitmask(hex) {
+    const bits = parseInt(hex, 16);
+    const state = [];
+    for (let i = 0; i < 25; i++) {
+        state.push(Boolean(bits & (1 << i)));
+    }
+    return state;
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -326,6 +371,8 @@ if (typeof module !== 'undefined' && module.exports) {
         migrateLegacyState,
         encodeSongsToBase64,
         decodeSongsFromBase64,
-        generateCardPermutations
+        generateCardPermutations,
+        encodeCheckedBitmask,
+        decodeCheckedBitmask
     };
 }

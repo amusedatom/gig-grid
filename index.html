@@ -51,16 +51,16 @@
             <h1 class="title">
                 <span class="brand-accent" id="gameTitle">Gig</span> Bingo
             </h1>
-            <div class="counter">
+            <div class="counter" id="headerCounter">
                 <span id="counter">0</span>/<span id="total">25</span>
                 <span class="score-badge" id="scoreBadge" title="Score">⭐ 0</span>
             </div>
         </header>
 
-        <!-- Mode Selector -->
-        <div class="mode-selector" id="modeSelector">
-            <button class="mode-btn active" data-mode="classic">Quick Play</button>
-            <button class="mode-btn" data-mode="host">Host Game</button>
+        <!-- Frozen View Banner -->
+        <div class="frozen-banner" id="frozenBanner" style="display: none;">
+            <span class="frozen-label">👀 Viewing a shared board</span>
+            <button class="btn btn-primary btn-sm" id="exitFrozenBtn">Back to Home</button>
         </div>
 
         <!-- Game Info Bar -->
@@ -68,11 +68,63 @@
             <span id="gameInfoText"></span>
         </div>
 
-        <main class="bingo-grid" id="bingoGrid">
+        <!-- ====== WELCOME PAGE ====== -->
+        <div class="welcome-page" id="welcomePage">
+            <div class="welcome-hero">
+                <div class="welcome-icon">
+                    <div class="mini-grid">
+                        <span class="mg-cell"></span><span class="mg-cell hit"></span><span class="mg-cell"></span><span
+                            class="mg-cell hit"></span><span class="mg-cell"></span>
+                        <span class="mg-cell hit"></span><span class="mg-cell"></span><span
+                            class="mg-cell hit"></span><span class="mg-cell"></span><span class="mg-cell hit"></span>
+                        <span class="mg-cell"></span><span class="mg-cell hit"></span><span
+                            class="mg-cell star">⭐</span><span class="mg-cell hit"></span><span class="mg-cell"></span>
+                        <span class="mg-cell hit"></span><span class="mg-cell"></span><span
+                            class="mg-cell hit"></span><span class="mg-cell"></span><span class="mg-cell hit"></span>
+                        <span class="mg-cell"></span><span class="mg-cell hit"></span><span class="mg-cell"></span><span
+                            class="mg-cell hit"></span><span class="mg-cell"></span>
+                    </div>
+                    <span class="welcome-notes">🎵</span>
+                </div>
+                <h2 class="welcome-tagline">Music Bingo for<br><span class="accent-gradient">Any Gig, Any Crowd</span>
+                </h2>
+                <p class="welcome-subtitle">Create custom bingo cards for concerts, festivals and parties — then share
+                    with your friends and see who wins!</p>
+            </div>
+
+            <div class="welcome-steps">
+                <div class="step-card">
+                    <span class="step-number">1</span>
+                    <span class="step-emoji">✏️</span>
+                    <h3>Create</h3>
+                    <p>Build a card from scratch or import a Spotify playlist</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number">2</span>
+                    <span class="step-emoji">🔗</span>
+                    <h3>Share</h3>
+                    <p>Send unique links to your friends — each gets a different card!</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number">3</span>
+                    <span class="step-emoji">🎉</span>
+                    <h3>Play</h3>
+                    <p>Check off songs as they're played and race to complete lines</p>
+                </div>
+            </div>
+
+            <button class="btn welcome-cta" id="welcomeHostBtn">
+                🎤 Host a Game
+            </button>
+            <p class="welcome-hint">Or open a link shared by a friend to start playing instantly</p>
+        </div>
+
+        <!-- ====== GAME UI (hidden by default) ====== -->
+        <main class="bingo-grid" id="bingoGrid" style="display: none;">
             <!-- Grid will be populated by JavaScript -->
         </main>
 
-        <footer class="footer">
+        <footer class="footer" id="gameFooter" style="display: none;">
             <button id="resetBtn" class="btn btn-reset">Reset Board</button>
             <button id="shareBtn" class="btn btn-share">Share Progress</button>
         </footer>
