@@ -1404,3 +1404,10 @@ body.frozen-view .score-badge.has-lines {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: #fff;
 }
+
+.modal-play-btn {
+    margin-top: 1.5rem;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+}

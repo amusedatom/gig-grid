@@ -1009,6 +1009,30 @@ class MusicBingoApp {
             }
         });
 
+        // Start My Game buttons
+        const startSpotifyGameBtn = document.getElementById('startSpotifyGameBtn');
+        if (startSpotifyGameBtn) {
+            startSpotifyGameBtn.addEventListener('click', () => {
+                hideQRCodeModal();
+            });
+        }
+
+        const startCustomGameBtn = document.getElementById('startCustomGameBtn');
+        if (startCustomGameBtn) {
+            startCustomGameBtn.addEventListener('click', () => {
+                const url = document.getElementById('currentCardUrl').value;
+                const hash = url.split('#')[1];
+                if (hash) {
+                    const gameState = decodeGameState(hash);
+                    if (gameState) {
+                        this.joinGame(gameState);
+                        updateUrlHash(gameState);
+                    }
+                }
+                this.hideShareCardsModal();
+            });
+        }
+
         // Close modals on background click
         this.playlistModal.addEventListener('click', (e) => {
             if (e.target === this.playlistModal) {
