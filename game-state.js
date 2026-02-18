@@ -24,9 +24,12 @@
 function encodeGameState(gameState) {
     const params = new URLSearchParams();
 
-    params.set('game', gameState.gameId);
-    params.set('mode', gameState.mode);
-    params.set('seed', gameState.seed.toString());
+    if (gameState.join) {
+        params.set('join', 'true');
+    } else {
+        params.set('game', gameState.gameId);
+        params.set('seed', gameState.seed.toString());
+    }
 
     if (gameState.mode === 'spotify') {
         params.set('playlist', gameState.playlistId);
@@ -73,11 +76,14 @@ function decodeGameState(hash) {
     try {
         const params = new URLSearchParams(hash);
 
+        const join = params.get('join') === 'true';
         const gameId = params.get('game');
         const mode = params.get('mode');
-        const seed = parseInt(params.get('seed'));
+        const seedStr = params.get('seed');
+        const seed = seedStr ? parseInt(seedStr) : NaN;
 
-        if (!gameId || !mode || isNaN(seed)) {
+        // Validation: Must have mode. If not joining, must have gameId and seed.
+        if (!mode || (!join && (!gameId || isNaN(seed)))) {
             return null;
         }
 
@@ -85,6 +91,7 @@ function decodeGameState(hash) {
             gameId,
             mode,
             seed,
+            join,
             timestamp: Date.now()
         };
 

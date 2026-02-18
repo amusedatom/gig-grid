@@ -49,6 +49,9 @@ class MusicBingoApp {
             if (urlGame.frozen) {
                 // Frozen view — read-only snapshot, don't overwrite anything
                 await this.enterFrozenView(urlGame);
+            } else if (urlGame.join) {
+                // Master Join Link — generate unique board and join
+                await this.handleJoinLink(urlGame);
             } else {
                 await this.joinGame(urlGame);
             }
@@ -58,6 +61,21 @@ class MusicBingoApp {
         }
 
         this.attachEventListeners();
+    }
+
+    async handleJoinLink(gameState) {
+        this.showToast('Joining game...');
+
+        // Generate unique game ID and seed for this user
+        gameState.gameId = generateGameId();
+        gameState.seed = generateGameSeed();
+        gameState.join = false; // It's no longer a join link once we have local state
+
+        // Update URL hash to the unique game URL (so refreshes keep the same board)
+        updateUrlHash(gameState);
+
+        // Proceed to join the game
+        await this.joinGame(gameState);
     }
 
     // ========================================
@@ -418,16 +436,23 @@ class MusicBingoApp {
 
     generateNewCard() {
         try {
-            // Generate a single new card
-            const cards = this.cardBuilder.generateCards(1);
-            const card = cards[0];
+            // Generate a join link
+            const joinUrl = this.cardBuilder.generateJoinLink();
 
             // Update UI
-            document.getElementById('currentCardName').textContent = `${this.cardBuilder.builderName} - #${this.cardCounter}`;
-            document.getElementById('currentCardUrl').value = card.url;
+            document.getElementById('currentCardName').textContent = this.cardBuilder.builderName;
+            document.getElementById('currentCardUrl').value = joinUrl;
+
+            // Update button texts (remove "& Next" if present)
+            const copyBtn = document.getElementById('copyCurrentCardBtn');
+            if (copyBtn) copyBtn.textContent = 'Copy Join Link';
+
+            const whatsappBtn = document.getElementById('whatsappCurrentCardBtn');
+            if (whatsappBtn) whatsappBtn.textContent = 'WhatsApp Link';
+
         } catch (error) {
-            console.error('Failed to generate card:', error);
-            this.showToast('Failed to generate card');
+            console.error('Failed to generate join link:', error);
+            this.showToast('Failed to generate sharing link');
         }
     }
 
@@ -575,8 +600,19 @@ class MusicBingoApp {
             // Create game from playlist
             const gameData = await createGameFromPlaylist(playlist.id, 25);
 
-            // Generate game state
-            const gameState = {
+            // Generate game state for sharing (Join Link)
+            const shareState = {
+                mode: 'spotify',
+                playlistId: playlist.id,
+                playlistName: playlist.name,
+                join: true
+            };
+
+            // Create shareable URL
+            const shareUrl = createShareableUrl(shareState);
+
+            // Update local state and URL for the host
+            const hostState = {
                 gameId: generateGameId(),
                 mode: 'spotify',
                 playlistId: playlist.id,
@@ -584,15 +620,10 @@ class MusicBingoApp {
                 seed: generateGameSeed(),
                 timestamp: Date.now()
             };
-
-            // Create shareable URL
-            const shareUrl = createShareableUrl(gameState);
-
-            // Update URL
-            updateUrlHash(gameState);
+            updateUrlHash(hostState);
 
             // Load the game
-            this.currentGame = gameState;
+            this.currentGame = hostState;
             this.currentTracks = gameData.tracks;
             this.currentMode = 'spotify';
 
@@ -603,7 +634,7 @@ class MusicBingoApp {
 
             this.loadGame();
 
-            // Show QR code
+            // Show QR code (using Join Link)
             showQRCodeModal(shareUrl, playlist.name);
 
         } catch (error) {
@@ -887,9 +918,6 @@ class MusicBingoApp {
                 const success = await copyUrlToClipboard(url);
                 if (success) {
                     this.showToast('Link copied! 📋');
-                    // Increment counter and generate new card
-                    this.cardCounter++;
-                    this.generateNewCard();
                 }
             });
         }
@@ -899,9 +927,6 @@ class MusicBingoApp {
                 const url = document.getElementById('currentCardUrl').value;
                 const text = encodeURIComponent(`Join my Gig Bingo game! ${url}`);
                 window.open(`https://wa.me/?text=${text}`, '_blank');
-                // Increment counter and generate new card
-                this.cardCounter++;
-                this.generateNewCard();
             });
         }
 
@@ -1023,10 +1048,10 @@ class MusicBingoApp {
                 const url = document.getElementById('currentCardUrl').value;
                 const hash = url.split('#')[1];
                 if (hash) {
-                    const gameState = decodeGameState(hash);
-                    if (gameState) {
-                        this.joinGame(gameState);
-                        updateUrlHash(gameState);
+                    const joinState = decodeGameState(hash);
+                    if (joinState && joinState.join) {
+                        // The host also needs a unique board!
+                        this.handleJoinLink(joinState);
                     }
                 }
                 this.hideShareCardsModal();

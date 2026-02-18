@@ -152,7 +152,35 @@ class CardBuilder {
     }
 
     /**
-     * Generate shareable cards
+     * Generate a single 'Join' link (Master Link)
+     * @returns {string} Join URL
+     */
+    generateJoinLink() {
+        if (!this.selectedSongs || this.selectedSongs.length < 25) {
+            throw new Error('Need at least 25 songs to generate join link');
+        }
+
+        const hasAllIds = this.selectedSongs.every(s => s.id);
+        const gameState = {
+            mode: 'card',
+            join: true,
+            cardName: this.builderName
+        };
+
+        if (hasAllIds) {
+            gameState.songIds = this.selectedSongs.map(s => s.id);
+        } else {
+            gameState.customSongs = this.selectedSongs.map(s => ({
+                name: s.name,
+                artist: s.artist
+            }));
+        }
+
+        return createShareableUrl(gameState);
+    }
+
+    /**
+     * Generate shareable cards (legacy unique links)
      * @param {number} count - Number of cards to generate
      * @returns {Array} Array of { gameState, url } objects
      */
