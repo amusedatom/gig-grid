@@ -96,7 +96,7 @@
                 PLAY NOW
             </button>
 
-            <a href="/builder" class="text-xs font-bold text-gray-500 hover:text-white mt-2">
+            <a href="{base}/builder" class="text-xs font-bold text-gray-500 hover:text-white mt-2">
                 ← EDIT GAME
             </a>
         </div>
