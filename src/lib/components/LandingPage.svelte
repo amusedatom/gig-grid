@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { game } from '$lib/stores/game.svelte';
 </script>
 
@@ -47,7 +48,7 @@
         </div>
     </div>
 
-    <button class="welcome-cta" onclick={() => goto('/builder')}>
+    <button class="welcome-cta" onclick={() => goto(`${base}/builder`)}>
         🎤 Host a Game
     </button>
     <p class="welcome-hint">Or open a link shared by a friend to start playing instantly</p>
