@@ -4,12 +4,12 @@
  * @returns Random number generator function (0 to 1)
  */
 export function mulberry32(seed: number): () => number {
-    return function () {
-        let t = (seed += 0x6d2b79f5);
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+	return function () {
+		let t = (seed += 0x6d2b79f5);
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
 }
 
 /**
@@ -18,11 +18,11 @@ export function mulberry32(seed: number): () => number {
  * @returns RNG function
  */
 export function createSeededRandom(seed: number | string): () => number {
-    // Convert string seeds to numeric hash
-    if (typeof seed === 'string') {
-        seed = hashString(seed);
-    }
-    return mulberry32(seed);
+	// Convert string seeds to numeric hash
+	if (typeof seed === 'string') {
+		seed = hashString(seed);
+	}
+	return mulberry32(seed);
 }
 
 /**
@@ -31,13 +31,13 @@ export function createSeededRandom(seed: number | string): () => number {
  * @returns Hash value
  */
 export function hashString(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    return Math.abs(hash);
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash; // Convert to 32-bit integer
+	}
+	return Math.abs(hash);
 }
 
 /**
@@ -47,15 +47,15 @@ export function hashString(str: string): number {
  * @returns New shuffled array (does not mutate original)
  */
 export function seededShuffle<T>(array: T[], seed: number | string): T[] {
-    const shuffled = [...array]; // Clone array
-    const rng = createSeededRandom(seed);
+	const shuffled = [...array]; // Clone array
+	const rng = createSeededRandom(seed);
 
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(rng() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
 
-    return shuffled;
+	return shuffled;
 }
 
 /**
@@ -66,8 +66,8 @@ export function seededShuffle<T>(array: T[], seed: number | string): T[] {
  * @returns Selected items in random order
  */
 export function seededSelect<T>(array: T[], count: number, seed: number | string): T[] {
-    const shuffled = seededShuffle(array, seed);
-    return shuffled.slice(0, Math.min(count, array.length));
+	const shuffled = seededShuffle(array, seed);
+	return shuffled.slice(0, Math.min(count, array.length));
 }
 
 /**
@@ -75,5 +75,5 @@ export function seededSelect<T>(array: T[], count: number, seed: number | string
  * @returns Random seed value
  */
 export function generateGameSeed(): number {
-    return Math.floor(Math.random() * 1000000);
+	return Math.floor(Math.random() * 1000000);
 }

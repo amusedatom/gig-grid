@@ -5,13 +5,13 @@
  * @returns Hex string
  */
 export function encodeCheckedBitmask(checkedState: boolean[]): string {
-    let bits = 0n;
-    for (let i = 0; i < checkedState.length; i++) {
-        if (checkedState[i]) {
-            bits |= (1n << BigInt(i));
-        }
-    }
-    return bits.toString(16);
+	let bits = 0n;
+	for (let i = 0; i < checkedState.length; i++) {
+		if (checkedState[i]) {
+			bits |= 1n << BigInt(i);
+		}
+	}
+	return bits.toString(16);
 }
 
 /**
@@ -21,17 +21,17 @@ export function encodeCheckedBitmask(checkedState: boolean[]): string {
  * @returns Array of booleans
  */
 export function decodeCheckedBitmask(hex: string, length: number = 25): boolean[] {
-    try {
-        const bits = BigInt('0x' + hex);
-        const state: boolean[] = [];
-        for (let i = 0; i < length; i++) {
-            state.push(Boolean(bits & (1n << BigInt(i))));
-        }
-        return state;
-    } catch (e) {
-        console.error('Failed to decode bitmask:', e);
-        return Array(length).fill(false);
-    }
+	try {
+		const bits = BigInt('0x' + hex);
+		const state: boolean[] = [];
+		for (let i = 0; i < length; i++) {
+			state.push(Boolean(bits & (1n << BigInt(i))));
+		}
+		return state;
+	} catch (e) {
+		console.error('Failed to decode bitmask:', e);
+		return Array(length).fill(false);
+	}
 }
 
 /**
@@ -40,13 +40,13 @@ export function decodeCheckedBitmask(hex: string, length: number = 25): boolean[
  * @returns Base64 encoded string
  */
 export function encodeSongsToBase64(songs: string[]): string {
-    try {
-        const jsonString = JSON.stringify(songs);
-        return btoa(encodeURIComponent(jsonString));
-    } catch (e) {
-        console.error('Failed to encode songs:', e);
-        return '';
-    }
+	try {
+		const jsonString = JSON.stringify(songs);
+		return btoa(encodeURIComponent(jsonString));
+	} catch (e) {
+		console.error('Failed to encode songs:', e);
+		return '';
+	}
 }
 
 /**
@@ -55,12 +55,12 @@ export function encodeSongsToBase64(songs: string[]): string {
  * @returns Array of song strings or null if invalid
  */
 export function decodeSongsFromBase64(base64String: string): string[] | null {
-    try {
-        const jsonString = decodeURIComponent(atob(base64String));
-        const songs = JSON.parse(jsonString);
-        return Array.isArray(songs) ? songs : null;
-    } catch (e) {
-        console.error('Failed to decode songs:', e);
-        return null;
-    }
+	try {
+		const jsonString = decodeURIComponent(atob(base64String));
+		const songs = JSON.parse(jsonString);
+		return Array.isArray(songs) ? songs : null;
+	} catch (e) {
+		console.error('Failed to decode songs:', e);
+		return null;
+	}
 }
