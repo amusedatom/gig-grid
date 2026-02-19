@@ -156,6 +156,22 @@ export class GameStore {
         const newValidCount = vParam ? parseInt(vParam, 10) : this.size * this.size;
         if (this.validCount !== newValidCount) this.validCount = newValidCount;
 
+        // Mode - PARSE FIRST so that if we generate a seed, we know the mode!
+        const modeParam = params.get('m');
+        if (modeParam === 'custom') {
+            if (this.mode !== 'custom') this.mode = 'custom';
+
+            const songsParam = params.get('songs');
+            if (songsParam) {
+                const decoded = decodeSongsFromBase64(songsParam);
+                if (decoded && JSON.stringify(this.customSongs) !== JSON.stringify(decoded)) {
+                    this.customSongs = decoded;
+                }
+            }
+        } else {
+            if (this.mode !== 'classic') this.mode = 'classic';
+        }
+
         // Seed
         const seedParam = params.get('s');
         if (seedParam) {
@@ -179,28 +195,6 @@ export class GameStore {
             if (this.checkedMask !== '0') this.checkedMask = '0'; // Reset if no state provided (fresh game)
         }
 
-        // Mode
-        const modeParam = params.get('m');
-        if (modeParam === 'custom') {
-            if (this.mode !== 'custom') this.mode = 'custom';
-
-            const songsParam = params.get('songs');
-            if (songsParam) {
-                // This is a bit expensive to decode every time, but it's safe to check logic
-                // Ideally we'd compare the raw param to a stored raw param, but for now:
-                // We just rely on the fact that if we set it, it shouldn't change often.
-                // To be safe, let's only decode if empty or obviously different length/content hash?
-                // For now, let's blindly trust comparsion of the resulting object might be too hard.
-                // Let's just decode and set. If it triggers reactivity, it might be fine as long as other things don't.
-                // Actually, for customSongs, let's just do it.
-                const decoded = decodeSongsFromBase64(songsParam);
-                if (decoded && JSON.stringify(this.customSongs) !== JSON.stringify(decoded)) {
-                    this.customSongs = decoded;
-                }
-            }
-        } else {
-            if (this.mode !== 'classic') this.mode = 'classic';
-        }
     }
 
     /**

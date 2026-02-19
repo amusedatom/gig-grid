@@ -27,12 +27,20 @@
 </script>
 
 <header class="flex w-full max-w-md items-center justify-between border-b border-gray-800 bg-gray-950/80 px-4 py-4 backdrop-blur-md">
-    <a href="/" class="flex flex-col hover:opacity-80 transition-opacity">
+    <button 
+        onclick={() => {
+            // Reset to landing state
+            const url = new URL(window.location.href);
+            url.search = ''; // Clear all params
+            window.location.href = '/'; // Hard refresh to clear state mostly, or just goto('/')
+        }} 
+        class="flex flex-col text-left hover:opacity-80 transition-opacity"
+    >
         <h1 class="bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-2xl font-black italic tracking-tighter text-transparent">
             GIG BINGO
         </h1>
         <span class="text-xs font-medium text-gray-500">SERVERLESS MULTIPLAYER</span>
-    </a>
+    </button>
 
     <div class="flex gap-2">
         <button 
