@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { encodeSongsToBase64 } from '$lib/game/encoding';
     import { generateGameSeed } from '$lib/game/rng';
 
@@ -43,7 +44,7 @@
 
         const encoded = encodeSongsToBase64(songs);
         // Redirect to share page - NO SEED generated yet!
-        goto(`/share?m=custom&songs=${encoded}&sz=${gridSize}&v=${validCount}`);
+        goto(`${base}/share?m=custom&songs=${encoded}&sz=${gridSize}&v=${validCount}`);
     }
 
     function handleKeydown(e: KeyboardEvent) {
@@ -60,7 +61,7 @@
             <h1 class="bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-2xl font-black italic tracking-tighter text-transparent">
                 BUILDER
             </h1>
-            <a href="/" class="text-xs font-bold text-gray-400 hover:text-white">BACK TO GAME</a>
+            <a href="{base}/" class="text-xs font-bold text-gray-400 hover:text-white">BACK TO GAME</a>
         </header>
 
         <div class="flex flex-col gap-4 rounded-xl border border-gray-800 bg-gray-900/50 p-6 shadow-2xl backdrop-blur-sm">

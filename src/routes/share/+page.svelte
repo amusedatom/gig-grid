@@ -1,6 +1,7 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { onMount } from 'svelte';
     import Header from '$lib/components/Header.svelte';
 
@@ -18,7 +19,7 @@
         // Construct the "Magic Link" - basically the current URL but pointing to root
         // and WITHOUT any seed.
         const url = new URL(window.location.href);
-        url.pathname = '/';
+        url.pathname = `${base}/`;
         
         // Ensure we keep the definitive params
         // (They should already be in the current URL, but let's be explicit and clean)

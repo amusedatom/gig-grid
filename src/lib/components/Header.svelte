@@ -1,5 +1,6 @@
 <script lang="ts">
     import { game } from '$lib/stores/game.svelte';
+    import { base } from '$app/paths';
     
     let copied = $state(false);
 
@@ -32,7 +33,7 @@
             // Reset to landing state
             const url = new URL(window.location.href);
             url.search = ''; // Clear all params
-            window.location.href = '/'; // Hard refresh to clear state mostly, or just goto('/')
+            window.location.href = `${base}/`; // Navigate to base path
         }} 
         class="flex flex-col text-left hover:opacity-80 transition-opacity"
     >
