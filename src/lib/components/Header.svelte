@@ -1,0 +1,55 @@
+<script lang="ts">
+    import { game } from '$lib/stores/game.svelte';
+    
+    let copied = $state(false);
+
+    function shareUrl() {
+        const url = new URL(window.location.href);
+        // If it's a custom game, we might want to share the "Master Link" (no seed, no checked)
+        // Check if we are in a game view (not builder)
+        if (url.searchParams.get('m') === 'custom') {
+           // Strip seed and checked state to create a fresh join link
+           // KEEP size and validCount!
+           url.searchParams.delete('s');
+           url.searchParams.delete('c');
+        } else if (url.searchParams.get('s')) {
+             // For classic mode
+             url.searchParams.delete('s');
+             url.searchParams.delete('c');
+             
+             // Keep size/valid if they exist
+        }
+        
+        navigator.clipboard.writeText(url.toString());
+        copied = true;
+        setTimeout(() => copied = false, 2000);
+    }
+</script>
+
+<header class="flex w-full max-w-md items-center justify-between border-b border-gray-800 bg-gray-950/80 px-4 py-4 backdrop-blur-md">
+    <a href="/" class="flex flex-col hover:opacity-80 transition-opacity">
+        <h1 class="bg-gradient-to-r from-fuchsia-400 to-purple-400 bg-clip-text text-2xl font-black italic tracking-tighter text-transparent">
+            GIG BINGO
+        </h1>
+        <span class="text-xs font-medium text-gray-500">SERVERLESS MULTIPLAYER</span>
+    </a>
+
+    <div class="flex gap-2">
+        <button 
+            class="flex items-center gap-1.5 rounded-lg border border-fuchsia-600 bg-fuchsia-900/50 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-fuchsia-900 hover:shadow-[0_0_10px_rgba(192,38,211,0.4)]"
+            onclick={shareUrl}
+        >
+            {#if copied}
+                <span>COPIED!</span>
+            {:else}
+                <!-- Share Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                    <polyline points="16 6 12 2 8 6"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+                <span>SHARE</span>
+            {/if}
+        </button>
+    </div>
+</header>

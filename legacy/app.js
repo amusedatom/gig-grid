@@ -18,6 +18,7 @@ class MusicBingoApp {
         this.welcomePage = document.getElementById('welcomePage');
         this.gameFooter = document.getElementById('gameFooter');
         this.headerCounter = document.getElementById('headerCounter');
+        this.homeLink = document.getElementById('homeLink');
 
         // Modals
         this.playlistModal = document.getElementById('playlistModal');

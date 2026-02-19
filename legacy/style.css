@@ -95,6 +95,27 @@ body {
     font-weight: 800;
     letter-spacing: 1px;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+}
+
+.title-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.title-link:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+.title-link:active {
+    transform: scale(0.98);
 }
 
 .brand-accent {

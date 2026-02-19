@@ -23,6 +23,7 @@
  */
 function encodeGameState(gameState) {
     const params = new URLSearchParams();
+    params.set('mode', gameState.mode);
 
     if (gameState.join) {
         params.set('join', 'true');
